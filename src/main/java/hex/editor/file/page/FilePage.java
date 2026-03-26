@@ -2,13 +2,13 @@ package hex.editor.file.page;
 
 import hex.editor.file.FileChanger;
 import hex.editor.file.FileHolder;
-import hex.editor.file.history.ByteBlock;
-import hex.editor.file.history.PageHistory;
-import hex.editor.file.history.Transaction;
+import hex.editor.file.history.*;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class FilePage implements PageOperations, FileChanger {
@@ -17,12 +17,12 @@ public class FilePage implements PageOperations, FileChanger {
     List<Byte> currentBuffer;
     Boolean isSaved;
     Instant createdAt;
-    final PageHistory pageHistory;
     FileHolder fileHolder;
+    FileHistory fileHistory;
 
     public FilePage(FileHolder fileHolder, Long position) {
         isSaved = true;
-        pageHistory = new PageHistory(this);
+        fileHistory = fileHolder.getHistory();
         this.fileHolder = fileHolder;
         this.position = position;
         this.createdAt = Instant.now();
@@ -114,11 +114,58 @@ public class FilePage implements PageOperations, FileChanger {
 
     @Override
     public void doChanges(ByteBlock block) {
-        pageHistory.doChanges(block);
+        switch (block.getType()){
+            case DELETE:
+                byte deletedData = doDelete(block);
+                ByteBlock insertBlock = new ByteBlock(block.getIndex(), deletedData, FileEventType.INSERT, block.getPageIndex());
+                fileHistory.doChanges(insertBlock);
+                break;
+            case UPDATE:
+                byte updatedData = doUpdate(block);
+                ByteBlock updateBlock = new ByteBlock(block.getIndex(), updatedData, FileEventType.UPDATE, block.getPageIndex());
+                fileHistory.doChanges(updateBlock);
+                break;
+            case INSERT:
+                doInsert(block);
+                ByteBlock deleteBlock = new ByteBlock(block.getIndex(), FileEventType.DELETE, block.getPageIndex());
+                fileHistory.doChanges(deleteBlock);
+        }
     }
 
     @Override
     public void doChanges(Transaction transaction) {
-
+        switch (transaction.getType()){
+            case DELETE:
+                byte[] deletedData = doDelete(transaction);
+                Transaction insertTransaction = new Transaction(
+                        deletedData,
+                        transaction.getStart(),
+                        transaction.getEnd(),
+                        FileEventType.INSERT,
+                        transaction.getPageIndex());
+                fileHistory.doChanges(insertTransaction);
+                break;
+            case UPDATE:
+                byte[] updatedData = doUpdate(transaction);
+                Transaction updateTransaction = new Transaction(
+                        updatedData,
+                        transaction.getStart(),
+                        transaction.getEnd(),
+                        FileEventType.UPDATE,
+                        transaction.getPageIndex()
+                );
+                fileHistory.doChanges(updateTransaction);
+                break;
+            case INSERT:
+                doInsert(transaction);
+                Transaction deleteTransaction = new Transaction(
+                        new byte[]{},
+                        transaction.getStart(),
+                        transaction.getEnd(),
+                        FileEventType.DELETE,
+                        transaction.getPageIndex()
+                );
+                fileHistory.doChanges(deleteTransaction);
+        }
     }
 }

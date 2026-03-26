@@ -25,14 +25,15 @@ public class ByteBlock implements FileEvent, Comparable<ByteBlock> {
         return index;
     }
 
-    public ByteBlock(Integer index, Long pageIndex) {
+    public ByteBlock(Integer index, FileEventType eventType, Long pageIndex) {
         this.pageIndex = pageIndex;
     }
 
-    public ByteBlock(Integer index, byte data, Long pageIndex) {
+    public ByteBlock(Integer index, byte data, FileEventType type, Long pageIndex) {
         this.index = index;
         this.data = data;
         this.pageIndex = pageIndex;
+        this.type = type;
     }
 
     @Override

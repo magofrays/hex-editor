@@ -24,9 +24,9 @@ public class FileHolder implements FileChanger {
     final FileChannel fileChannel;
     final FileHistory history;
     Long fileSize;
-    final Integer pageSize = HexEditorConfig.getInstance().getInteger("file.page-size");
-    final Long limitPages;
-    final Integer pageFreeSpace = HexEditorConfig.getInstance().getInteger("file.page-free-space");
+    final Integer pageSize = HexEditorConfig.getInstance().getInteger("file.page.size");
+    final Long lastPageIndex;
+
     public FileHolder(String filePath) throws IOException {
         this.filePath = Paths.get(filePath);
         if (Files.notExists(this.filePath)) {
@@ -35,7 +35,11 @@ public class FileHolder implements FileChanger {
         this.history = new FileHistory();
         this.fileSize = Files.size(this.filePath);
         this.fileChannel = FileChannel.open(this.filePath, StandardOpenOption.READ, StandardOpenOption.WRITE);
-        limitPages = fileSize/pageSize;
+        lastPageIndex = fileSize/pageSize;
+    }
+
+    public FileHistory getHistory() {
+        return history;
     }
 
     public Integer getPageSize(){
@@ -46,9 +50,6 @@ public class FileHolder implements FileChanger {
         return fileSize;
     }
 
-    public void setFileSize(Long fileSize){
-        this.fileSize = fileSize;
-    }
 
     public FileChanger getPage(Long pagePosition){
         Long index = (pagePosition/pageSize);
@@ -60,7 +61,6 @@ public class FileHolder implements FileChanger {
         FilePage newPage = new FilePage(this, startRead);
         ByteBuffer buf = ByteBuffer.allocate(Math.toIntExact(pageSize));
         try {
-            buf.limit(pageSize - pageFreeSpace);
             fileChannel.position(startRead);
             fileChannel.read(buf);
             buf.flip();
@@ -82,7 +82,9 @@ public class FileHolder implements FileChanger {
 
     @Override
     public void doChanges(Transaction transaction) {
-
+        Long index = transaction.getPageIndex();
+        FileChanger page = pages.get(index);
+        page.doChanges(transaction);
     }
 
 

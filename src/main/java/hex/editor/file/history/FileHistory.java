@@ -1,50 +1,41 @@
 package hex.editor.file.history;
 
 import hex.editor.config.HexEditorConfig;
+import hex.editor.file.FileChanger;
 
 import java.util.*;
 
 import javax.swing.Timer;
 import java.util.*;
 
-public class FileHistory {
-    private Deque<Transaction> undoStack = new LinkedList<>();
-    private Deque<Transaction> redoStack = new LinkedList<>();
-    private Map<Long, PageHistory> pages = new HashMap<>();
+public class FileHistory implements FileChanger {
+    private final Deque<Transaction> undoStack = new LinkedList<>();
+    private final Deque<Transaction> redoStack = new LinkedList<>();
     private Transaction currentTransaction;
-    private Timer transactionTimer;
-    private long transactionTimeoutMs = HexEditorConfig.getInstance().getLong("file.transaction.timeout.ms");
+    private Integer maxHistorySize = HexEditorConfig.getInstance().getInteger("")
 
     public FileHistory() {
-        transactionTimer = new Timer((int) transactionTimeoutMs, e -> commitTransaction());
-        transactionTimer.setRepeats(false);
+
     }
 
+    @Override
     public void doChanges(ByteBlock block) {
         if (currentTransaction == null) {
             currentTransaction = new Transaction(block.getType());
         }
-
-        currentTransaction.addBlock(block);
-        PageHistory pageHistory = pages.get(block.getPageIndex());
-        pageHistory.doChanges(block);
-        transactionTimer.restart();
-    }
-
-    private void commitTransaction() {
-        if (currentTransaction != null && !currentTransaction.isEmpty()) {
+        if(!currentTransaction.addBlock(block)){
             undoStack.push(currentTransaction);
-            redoStack.clear();
             currentTransaction = null;
         }
     }
 
-    public void flush() {
-        transactionTimer.stop();
-        commitTransaction();
+    @Override
+    public void doChanges(Transaction transaction) {
+        if(currentTransaction != null){
+            undoStack.push(currentTransaction);
+            currentTransaction = null;
+        }
+        undoStack.push(transaction);
     }
-
-
-
 
 }
