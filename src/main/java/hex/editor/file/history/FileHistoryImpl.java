@@ -2,12 +2,15 @@ package hex.editor.file.history;
 
 import hex.editor.config.HexEditorConfig;
 import hex.editor.file.FileChanger;
+import hex.editor.file.event.ByteBlock;
+import hex.editor.file.event.ChangeEvent;
+import hex.editor.file.event.Transaction;
 
 import java.util.*;
 
 public class FileHistoryImpl implements FileHistory {
-    private final Deque<Transaction> undoStack;
-    private final Deque<Transaction> redoStack;
+    private final Deque<ChangeEvent> undoStack;
+    private final Deque<ChangeEvent> redoStack;
     private Transaction currentTransaction;
     private final Integer historySize;
     private final FileChanger fileChanger;
@@ -19,8 +22,8 @@ public class FileHistoryImpl implements FileHistory {
         this.fileChanger = fileHolder;
     }
 
-    @Override
-    public void collectEvent(ByteBlock block) {
+
+    public void collectByteBlock(ByteBlock block) {
         if (currentTransaction == null) {
             clearRedoStack();
             currentTransaction = new Transaction(block.getType());
@@ -32,15 +35,26 @@ public class FileHistoryImpl implements FileHistory {
         }
     }
 
-    @Override
-    public void collectEvent(Transaction transaction) {
-        clearRedoStack();
+
+    public void collectTransaction(Transaction transaction) {
+
         if(currentTransaction != null){
             undoStack.push(currentTransaction);
             currentTransaction = null;
         }
         undoStack.push(transaction);
         checkSize();
+    }
+
+    @Override
+    public void collectEvent(ChangeEvent event){
+        clearRedoStack();
+        if(event instanceof ByteBlock){
+            collectByteBlock((ByteBlock) event);
+        }
+        if (event instanceof Transaction){
+            collectTransaction((Transaction) event);
+        }
     }
 
     public void checkSize(){
@@ -59,8 +73,8 @@ public class FileHistoryImpl implements FileHistory {
         if(undoStack.isEmpty()){
             return;
         }
-        Transaction undoTransaction = undoStack.pollLast();
-        Transaction redoTransaction = fileChanger.doChanges(undoTransaction);
+        ChangeEvent undoTransaction = undoStack.pollLast();
+        ChangeEvent redoTransaction = fileChanger.doChanges(undoTransaction);
         redoStack.push(redoTransaction);
     }
 
@@ -69,8 +83,8 @@ public class FileHistoryImpl implements FileHistory {
         if(redoStack.isEmpty()){
             return;
         }
-        Transaction redoTransaction = redoStack.pollLast();
-        Transaction undoTransaction = fileChanger.doChanges(redoTransaction);
+        ChangeEvent redoTransaction = redoStack.pollLast();
+        ChangeEvent undoTransaction = fileChanger.doChanges(redoTransaction);
         undoStack.push(undoTransaction);
     }
 

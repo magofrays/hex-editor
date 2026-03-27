@@ -1,10 +1,8 @@
 package hex.editor.file;
 
-import hex.editor.file.history.ByteBlock;
-import hex.editor.file.history.Transaction;
+import hex.editor.file.event.ChangeEvent;
 
 public interface FileChanger {
-    ByteBlock doChanges(ByteBlock block);
-    Transaction doChanges(Transaction transaction);
+    ChangeEvent doChanges(ChangeEvent event);
     void saveFile();
 }

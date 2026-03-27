@@ -1,8 +1,8 @@
 package hex.editor.file.page;
 
 import hex.editor.file.FileChanger;
-import hex.editor.file.history.ByteBlock;
-import hex.editor.file.history.Transaction;
+import hex.editor.file.event.ByteBlock;
+import hex.editor.file.event.Transaction;
 
 import java.util.List;
 

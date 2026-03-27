@@ -1,12 +1,10 @@
-package hex.editor.file.history;
+package hex.editor.file.event;
 
-import hex.editor.file.event.FileEvent;
-import hex.editor.file.event.FileEventType;
+import java.util.ArrayList;
+import java.util.Deque;
+import java.util.LinkedList;
 
-import java.util.*;
-
-public class Transaction implements FileEvent {
-    Long pageIndex;
+public class Transaction extends ChangeEvent {
     ArrayList<Byte> data;
     FileEventType type;
     Integer start;
@@ -14,14 +12,14 @@ public class Transaction implements FileEvent {
     Deque<ByteBlock> blocks = new LinkedList<>();
     Boolean isConstructed = false;
 
-    public Transaction(byte[] data, Integer start, Integer end, FileEventType type, Long pageIndex) {
+    public Transaction(byte[] data, Integer start, Integer end, FileEventType type, Integer pageIndex) {
         this.data = new ArrayList<>(data.length);
         for (byte b : data) this.data.add(b);
         this.type = type;
         this.start = start;
         this.end = end;
         this.isConstructed = true;
-        this.pageIndex = pageIndex;
+        super.pageIndex = pageIndex;
     }
 
 
@@ -82,8 +80,8 @@ public class Transaction implements FileEvent {
         return type;
     }
 
-    public Long getPageIndex() {
-        return pageIndex;
+    public Integer getPageIndex() {
+        return super.getPageIndex();
     }
 
     public boolean addBlock(ByteBlock newBlock) {
@@ -112,7 +110,7 @@ public class Transaction implements FileEvent {
             return false;
         }
         if(blocks.peek().index + 1 == newBlock.index){
-            blocks.push(newBlock); // need to reverse it
+            blocks.push(newBlock); // it is reversed
             return true;
         }
         return false;
@@ -123,7 +121,7 @@ public class Transaction implements FileEvent {
             return false;
         }
         if((blocks.peek().index - 1) == newBlock.index || blocks.peek().index.equals(newBlock.index)){
-            blocks.push(newBlock); // need to reverse it
+            blocks.push(newBlock); // it is reversed
             return true;
         }
         return false;

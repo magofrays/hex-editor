@@ -1,10 +1,11 @@
 package hex.editor.file.page;
 
+import hex.editor.exception.BadFileEventException;
 import hex.editor.exception.FileException;
-import hex.editor.file.FileChanger;
-import hex.editor.file.FileHolder;
+import hex.editor.file.event.ByteBlock;
+import hex.editor.file.event.ChangeEvent;
 import hex.editor.file.event.FileEventType;
-import hex.editor.file.history.*;
+import hex.editor.file.event.Transaction;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -125,8 +126,7 @@ public class FilePage implements PageOperations {
         currentBuffer.add(index, block.getByte());
     }
 
-    @Override
-    public ByteBlock doChanges(ByteBlock block) {
+    public ByteBlock doByteBlock(ByteBlock block) {
         switch (block.getType()){
             case DELETE:
                 byte deletedData = doDelete(block);
@@ -143,8 +143,7 @@ public class FilePage implements PageOperations {
         return block;
     }
 
-    @Override
-    public Transaction doChanges(Transaction transaction) {
+    public Transaction doTransaction(Transaction transaction) {
         switch (transaction.getType()){
             case DELETE:
                 byte[] deletedData = doDelete(transaction);
@@ -174,5 +173,16 @@ public class FilePage implements PageOperations {
                 );
         }
         return transaction;
+    }
+
+    @Override
+    public ChangeEvent doChanges(ChangeEvent event) {
+        if(event instanceof ByteBlock){
+            return doByteBlock((ByteBlock) event);
+        }
+        if(event instanceof Transaction){
+            return doTransaction((Transaction) event);
+        }
+        throw new BadFileEventException("Bad Event: ", event);
     }
 }
