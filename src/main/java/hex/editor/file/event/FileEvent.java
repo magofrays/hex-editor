@@ -1,4 +1,4 @@
-package hex.editor.file.history;
+package hex.editor.file.event;
 
 public interface FileEvent {
 

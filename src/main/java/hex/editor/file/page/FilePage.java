@@ -1,37 +1,44 @@
 package hex.editor.file.page;
 
+import hex.editor.exception.FileException;
 import hex.editor.file.FileChanger;
 import hex.editor.file.FileHolder;
+import hex.editor.file.event.FileEventType;
 import hex.editor.file.history.*;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
-public class FilePage implements PageOperations, FileChanger {
+public class FilePage implements PageOperations {
     Long position;
     ByteBuffer actualBuffer;
     List<Byte> currentBuffer;
     Boolean isSaved;
     Instant createdAt;
-    FileHolder fileHolder;
-    FileHistory fileHistory;
+    FileChannel fileChannel;
 
-    public FilePage(FileHolder fileHolder, Long position) {
+    public FilePage(FileChannel fileChannel, Long position, Integer pageSize) {
         isSaved = true;
-        fileHistory = fileHolder.getHistory();
-        this.fileHolder = fileHolder;
         this.position = position;
+        this.fileChannel = fileChannel;
+        ByteBuffer buf = ByteBuffer.allocate(pageSize);
+        try {
+            this.fileChannel.position(position);
+            this.fileChannel.read(buf);
+            buf.flip();
+            buf.limit(buf.capacity());
+        } catch (IOException e) {
+            throw new FileException("Error reading page at position " + position, e);
+        }
+        actualBuffer = buf;
+        currentBuffer = bufferToList(buf);
         this.createdAt = Instant.now();
     }
 
-    public void setBuffer(ByteBuffer buffer){
-        actualBuffer = buffer;
-        currentBuffer = bufferToList(buffer);
-    }
 
     public ArrayList<Byte> bufferToList(ByteBuffer buffer) {
         ArrayList<Byte> list = new ArrayList<>(buffer.remaining());
@@ -40,10 +47,6 @@ public class FilePage implements PageOperations, FileChanger {
             list.add(buffer.get());
         }
         return list;
-    }
-
-    public List<Byte> getCurrentBuffer() {
-        return currentBuffer;
     }
 
     @Override
@@ -68,6 +71,16 @@ public class FilePage implements PageOperations, FileChanger {
         byte deletedData = currentBuffer.get(index);
         currentBuffer.remove(index);
         return deletedData;
+    }
+
+    @Override
+    public List<Byte> readPage() {
+        return currentBuffer;
+    }
+
+    @Override
+    public void savePage() {
+        // todo
     }
 
     @Override
@@ -113,59 +126,53 @@ public class FilePage implements PageOperations, FileChanger {
     }
 
     @Override
-    public void doChanges(ByteBlock block) {
+    public ByteBlock doChanges(ByteBlock block) {
         switch (block.getType()){
             case DELETE:
                 byte deletedData = doDelete(block);
-                ByteBlock insertBlock = new ByteBlock(block.getIndex(), deletedData, FileEventType.INSERT, block.getPageIndex());
-                fileHistory.doChanges(insertBlock);
-                break;
+                return new ByteBlock(block.getIndex(), deletedData, FileEventType.INSERT, block.getPageIndex());
+
             case UPDATE:
                 byte updatedData = doUpdate(block);
-                ByteBlock updateBlock = new ByteBlock(block.getIndex(), updatedData, FileEventType.UPDATE, block.getPageIndex());
-                fileHistory.doChanges(updateBlock);
-                break;
+                return new ByteBlock(block.getIndex(), updatedData, FileEventType.UPDATE, block.getPageIndex());
+
             case INSERT:
                 doInsert(block);
-                ByteBlock deleteBlock = new ByteBlock(block.getIndex(), FileEventType.DELETE, block.getPageIndex());
-                fileHistory.doChanges(deleteBlock);
+                return new ByteBlock(block.getIndex(), FileEventType.DELETE, block.getPageIndex());
         }
+        return block;
     }
 
     @Override
-    public void doChanges(Transaction transaction) {
+    public Transaction doChanges(Transaction transaction) {
         switch (transaction.getType()){
             case DELETE:
                 byte[] deletedData = doDelete(transaction);
-                Transaction insertTransaction = new Transaction(
+                return new Transaction(
                         deletedData,
                         transaction.getStart(),
                         transaction.getEnd(),
                         FileEventType.INSERT,
                         transaction.getPageIndex());
-                fileHistory.doChanges(insertTransaction);
-                break;
             case UPDATE:
                 byte[] updatedData = doUpdate(transaction);
-                Transaction updateTransaction = new Transaction(
+                return new Transaction(
                         updatedData,
                         transaction.getStart(),
                         transaction.getEnd(),
                         FileEventType.UPDATE,
                         transaction.getPageIndex()
                 );
-                fileHistory.doChanges(updateTransaction);
-                break;
             case INSERT:
                 doInsert(transaction);
-                Transaction deleteTransaction = new Transaction(
+                return new Transaction(
                         new byte[]{},
                         transaction.getStart(),
                         transaction.getEnd(),
                         FileEventType.DELETE,
                         transaction.getPageIndex()
                 );
-                fileHistory.doChanges(deleteTransaction);
         }
+        return transaction;
     }
 }

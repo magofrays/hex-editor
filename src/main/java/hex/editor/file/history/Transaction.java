@@ -1,6 +1,7 @@
 package hex.editor.file.history;
 
-import jdk.internal.org.commonmark.node.Link;
+import hex.editor.file.event.FileEvent;
+import hex.editor.file.event.FileEventType;
 
 import java.util.*;
 

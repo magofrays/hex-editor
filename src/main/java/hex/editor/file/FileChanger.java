@@ -4,6 +4,7 @@ import hex.editor.file.history.ByteBlock;
 import hex.editor.file.history.Transaction;
 
 public interface FileChanger {
-    void doChanges(ByteBlock block);
-    void doChanges(Transaction transaction);
+    ByteBlock doChanges(ByteBlock block);
+    Transaction doChanges(Transaction transaction);
+    void saveFile();
 }

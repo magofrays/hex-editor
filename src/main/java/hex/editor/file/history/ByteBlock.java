@@ -1,6 +1,9 @@
 package hex.editor.file.history;
 
 
+import hex.editor.file.event.FileEvent;
+import hex.editor.file.event.FileEventType;
+
 public class ByteBlock implements FileEvent, Comparable<ByteBlock> {
 
     public byte getByte() {
