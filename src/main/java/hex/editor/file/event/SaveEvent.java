@@ -1,4 +1,4 @@
 package hex.editor.file.event;
 
-public interface SaveEvent extends FileEvent{
+public class SaveEvent implements FileEvent{
 }

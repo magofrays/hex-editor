@@ -1,5 +1,6 @@
 package hex.editor.file.controller;
 
+import hex.editor.exception.FileException;
 import hex.editor.file.FileChanger;
 import hex.editor.file.FileHolder;
 import hex.editor.file.FileViewer;
@@ -11,6 +12,7 @@ import hex.editor.file.history.FileHistory;
 import hex.editor.file.history.FileHistoryImpl;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 
 public class FileController {
@@ -19,7 +21,7 @@ public class FileController {
     FileViewer fileViewer;
     FileHistory fileHistory;
 
-    public FileController(String path) throws IOException {
+    public FileController(Path path) throws IOException {
         FileHolder fileHolder = new FileHolder(path);
         fileChanger = fileHolder;
         fileViewer = fileHolder;
@@ -28,7 +30,8 @@ public class FileController {
 
     public void processEvent(FileEvent fileEvent){
         if(fileEvent instanceof ChangeEvent){
-            fileChanger.doChanges((ChangeEvent) fileEvent);
+            ChangeEvent changes = fileChanger.doChanges((ChangeEvent) fileEvent);
+            fileHistory.collectEvent(changes);
         }
         if(fileEvent instanceof HistoryEvent){
             HistoryEvent historyEvent = (HistoryEvent) fileEvent;
@@ -42,7 +45,11 @@ public class FileController {
             }
         }
         if(fileEvent instanceof SaveEvent){
-            fileChanger.saveFile();
+            try {
+                fileChanger.saveFile();
+            } catch (IOException e) {
+                throw new FileException("File is corrupted!", e.getMessage());
+            }
         }
     }
     public List<Byte> getPage(Long position){

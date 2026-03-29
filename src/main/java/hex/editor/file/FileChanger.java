@@ -2,7 +2,9 @@ package hex.editor.file;
 
 import hex.editor.file.event.ChangeEvent;
 
+import java.io.IOException;
+
 public interface FileChanger {
     ChangeEvent doChanges(ChangeEvent event);
-    void saveFile();
+    void saveFile() throws IOException;
 }

@@ -1,6 +1,7 @@
 package hex.editor.file;
 
 import hex.editor.config.HexEditorConfig;
+import hex.editor.exception.FileException;
 import hex.editor.file.event.ChangeEvent;
 import hex.editor.file.page.FilePage;
 import hex.editor.file.page.PageOperations;
@@ -17,15 +18,15 @@ import java.util.Map;
 import java.util.TreeMap;
 
 public class FileHolder implements FileChanger, FileViewer{
-    final Map<Integer, PageOperations> pages;
+    final TreeMap<Integer, PageOperations> pages;
     final Path filePath;
     final FileChannel fileChannel;
-    final Long fileSize;
+    Long fileSize;
     final Integer pageSize;
     final Long lastPageIndex;
 
-    public FileHolder(String filePath) throws IOException {
-        this.filePath = Paths.get(filePath);
+    public FileHolder(Path filePath) throws IOException {
+        this.filePath = filePath;
         if (Files.notExists(this.filePath)) {
             throw new FileNotFoundException("fileSource: " + filePath + " not found");
         }
@@ -53,7 +54,8 @@ public class FileHolder implements FileChanger, FileViewer{
         if (page != null) {
             return page;
         }
-        FilePage newPage = new FilePage(fileChannel, startRead, pageSize);
+        FilePage newPage = new FilePage(fileChannel, startRead);
+        newPage.loadPage(pageSize, fileSize);
         pages.put(index, newPage);
         return newPage;
     }
@@ -71,9 +73,13 @@ public class FileHolder implements FileChanger, FileViewer{
     }
 
     @Override
-    public void saveFile() {
-        for (PageOperations page : pages.values()){
+    public void saveFile() throws IOException {
+        for (PageOperations page : pages.descendingMap().values()){
             page.savePage();
+        }
+        fileSize = Files.size(this.filePath);
+        for(PageOperations page : pages.values()){
+            page.loadPage(pageSize,fileSize);
         }
     }
 

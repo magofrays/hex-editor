@@ -25,6 +25,8 @@ public class ByteBlock extends ChangeEvent implements Comparable<ByteBlock> {
     }
 
     public ByteBlock(Integer index, FileEventType eventType, Integer pageIndex) {
+        this.index = index;
+        this.type = eventType;
         super.pageIndex = pageIndex;
     }
 

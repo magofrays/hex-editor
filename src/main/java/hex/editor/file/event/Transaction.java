@@ -1,6 +1,7 @@
 package hex.editor.file.event;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedList;
 
@@ -52,28 +53,21 @@ public class Transaction extends ChangeEvent {
     }
 
     private void construct() {
+        int blockSize = blocks.size();
         if(type.equals(FileEventType.INSERT) || type.equals(FileEventType.UPDATE)){
-            data = new ArrayList<>(blocks.size());
+            data = new ArrayList<>(blockSize);
         }
-        int lastIndex = -1;
         start = Integer.MAX_VALUE;
-        end = 0;
-        while(!blocks.isEmpty()){
-            ByteBlock block = blocks.pollLast();
+        for(ByteBlock block : blocks){
             if(type.equals(FileEventType.INSERT) || type.equals(FileEventType.UPDATE)){
-                if(lastIndex == block.index){
-                    data.add(block.index % blocks.size(), block.data);
-                } else {
-                    data.set(block.index % blocks.size(), block.data);
-                }
+                data.add(block.data);
             }
             if(start > block.index){
                 start = block.index;
             }
-            if (end < block.index){
-                end = block.index;
-            }
         }
+        end = start + blockSize;
+        isConstructed = true;
     }
 
     public FileEventType getType() {
@@ -106,33 +100,40 @@ public class Transaction extends ChangeEvent {
 
 
     private boolean addBlockDelete(ByteBlock newBlock){
-        if(blocks.peek() == null){
+        if(blocks.peekLast() == null){
             return false;
         }
-        if(blocks.peek().index + 1 == newBlock.index){
-            blocks.push(newBlock); // it is reversed
+        if(blocks.peekLast().index + 1 == newBlock.index){
+            blocks.addLast(newBlock);
             return true;
         }
         return false;
     }
 
     private boolean addBlockInsert(ByteBlock newBlock) {
-        if(blocks.peek() == null){
+        if(blocks.peekFirst() == null){
             return false;
         }
-        if((blocks.peek().index - 1) == newBlock.index || blocks.peek().index.equals(newBlock.index)){
-            blocks.push(newBlock); // it is reversed
+        if(blocks.peekFirst().index - 1 == newBlock.index){
+            blocks.addFirst(newBlock); // it is reversed
+            return true;
+        }
+        if(blocks.peekFirst().index.equals(newBlock.index)){
+            blocks.addLast(newBlock);
             return true;
         }
         return false;
     }
 
     private boolean addBlockUpdate(ByteBlock newBlock){
-        if(blocks.peek() == null){
+        if(blocks.peekLast() == null){
             return false;
         }
-        if(blocks.peek().index + 1 == newBlock.index){
-            blocks.push(newBlock);
+        if(blocks.peekLast().index + 1 == newBlock.index){
+            blocks.addLast(newBlock);
+            return true;
+        } else if (blocks.peekFirst().index - 1 == newBlock.index){
+            blocks.addFirst(newBlock);
             return true;
         }
         return false;

@@ -15,6 +15,7 @@ public interface PageOperations extends FileChanger {
     byte doDelete(ByteBlock block);
     List<Byte> readPage();
     void savePage();
+    void loadPage(Integer pageSize, Long fileSize);
     default void saveFile(){
         savePage();
     }

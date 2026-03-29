@@ -6,4 +6,5 @@ public abstract class ChangeEvent implements FileEvent {
     public Integer getPageIndex() {
         return pageIndex;
     }
+    public void setPageIndex(Integer pageIndex){ this.pageIndex = pageIndex; }
 }

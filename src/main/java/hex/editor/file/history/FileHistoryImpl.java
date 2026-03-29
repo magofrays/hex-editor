@@ -24,14 +24,19 @@ public class FileHistoryImpl implements FileHistory {
 
 
     public void collectByteBlock(ByteBlock block) {
+        if(currentTransaction != null){
+            boolean add = currentTransaction.addBlock(block);
+            if(!add){
+                undoStack.push(currentTransaction);
+                checkSize();
+                currentTransaction = null;
+            }
+        }
         if (currentTransaction == null) {
             clearRedoStack();
             currentTransaction = new Transaction(block.getType());
-        }
-        if(!currentTransaction.addBlock(block)){
-            undoStack.push(currentTransaction);
-            checkSize();
-            currentTransaction = null;
+            currentTransaction.setPageIndex(block.getPageIndex());
+            currentTransaction.addBlock(block);
         }
     }
 
@@ -70,10 +75,16 @@ public class FileHistoryImpl implements FileHistory {
 
     @Override
     public void undoChanges(){
-        if(undoStack.isEmpty()){
+        if(undoStack.isEmpty() && currentTransaction == null){
             return;
         }
-        ChangeEvent undoTransaction = undoStack.pollLast();
+        ChangeEvent undoTransaction;
+        if(currentTransaction == null){
+            undoTransaction = undoStack.pollLast();
+        } else {
+            undoTransaction = currentTransaction;
+            currentTransaction = null;
+        }
         ChangeEvent redoTransaction = fileChanger.doChanges(undoTransaction);
         redoStack.push(redoTransaction);
     }

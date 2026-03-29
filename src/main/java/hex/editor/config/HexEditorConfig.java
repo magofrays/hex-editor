@@ -11,7 +11,7 @@ import java.nio.file.Paths;
 import java.util.Properties;
 
 public class HexEditorConfig {
-    private static HexEditorConfig instance;
+    private static final HexEditorConfig instance = new HexEditorConfig();
     private final Properties properties = new Properties();
     public HexEditorConfig() {
         String configHome = System.getenv("XDG_CONFIG_HOME");
@@ -23,7 +23,7 @@ public class HexEditorConfig {
             try {
                 properties.load(new FileReader(userConfigFile.toFile()));
             } catch (IOException e) {
-                throw new FileException("Failed to load file: " + userConfigFile, e);
+                throw new FileException("Failed to load file: " + userConfigFile, e.getMessage());
             }
         }
         Path configSystem = Paths.get("/etc/hex-editor/config.properties");
@@ -31,15 +31,15 @@ public class HexEditorConfig {
             try {
                 properties.load(new FileReader(configSystem.toFile()));
             } catch (IOException e) {
-                throw new FileException("Failed to load file: " + userConfigFile, e);
+                throw new FileException("Failed to load file: " + userConfigFile, e.getMessage());
             }
         }
-        InputStream is = getClass().getResourceAsStream("/config/default.properties");
+        InputStream is = getClass().getResourceAsStream("/default.properties");
         if (is != null) {
             try {
                 properties.load(is);
             } catch (IOException e) {
-                throw new FileException("Failed to load file: " + is, e);
+                throw new FileException("Failed to load file: " + is, e.getMessage());
             }
         }
     }
