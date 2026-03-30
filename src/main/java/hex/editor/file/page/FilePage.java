@@ -21,14 +21,18 @@ public class FilePage implements PageOperations {
     Boolean isSaved;
     Instant updatedAt;
     FileChannel fileChannel;
-
+    Integer pageSize;
+    Long fileSize;
     public FilePage(FileChannel fileChannel, Long position) {
+        currentBuffer = new ArrayList<>();
         isSaved = true;
         this.position = position;
         this.fileChannel = fileChannel;
     }
 
     public void loadPage(Integer pageSize, Long fileSize){
+        this.pageSize = pageSize;
+        this.fileSize = fileSize;
         int bufferSize = Math.min(pageSize, Math.toIntExact(fileSize - position));
         if(bufferSize < 0){
             throw new FileException("Error reading page at position " + position, "File size is " + fileSize);
@@ -43,7 +47,8 @@ public class FilePage implements PageOperations {
             throw new FileException("Error reading page at position " + position, e.getMessage());
         }
         actualBuffer = buf;
-        currentBuffer = bufferToList(buf);
+        currentBuffer.clear();
+        currentBuffer.addAll(bufferToList(buf));
         this.updatedAt = Instant.now();
     }
 
@@ -91,9 +96,13 @@ public class FilePage implements PageOperations {
             return;
         }
         try {
-            ByteBuffer bufferToSave = ByteBuffer.allocate(currentBuffer.size());
+            int bufSize = Math.min(pageSize, Math.toIntExact(fileSize-position));
+            ByteBuffer bufferToSave = ByteBuffer.allocate(bufSize);
             for (Byte b : currentBuffer) {
                 bufferToSave.put(b);
+            }
+            for(int i = currentBuffer.size(); i != bufSize; i++){
+                bufferToSave.put((byte) 0);
             }
             bufferToSave.flip();
             fileChannel.position(position);
@@ -104,12 +113,6 @@ public class FilePage implements PageOperations {
                         String.format("Only %d of %d bytes written", bytesWritten, currentBuffer.size())
                 );
             }
-            actualBuffer = ByteBuffer.allocate(currentBuffer.size());
-            for (Byte b : currentBuffer) {
-                actualBuffer.put(b);
-            }
-            actualBuffer.flip();
-
             isSaved = true;
             updatedAt = Instant.now();
 

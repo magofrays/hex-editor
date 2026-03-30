@@ -36,7 +36,7 @@ public class HexEditor extends JFrame implements FileListener {
         setLayout(new BorderLayout(10, 10));
         ((JPanel)this.getContentPane()).setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         List<Byte> data = fileController.getPage(0L);
-        TableModel gridModel = new ByteGridModel(data);
+        TableModel gridModel = new ByteGridModel(data, fileController);
         JTable grid = new ByteGrid(gridModel);
         grid.setDefaultRenderer(Byte.class, new ByteCellRenderer());
         ByteGridKeyListener keyListener = new ByteGridKeyListener(grid, fileController);
