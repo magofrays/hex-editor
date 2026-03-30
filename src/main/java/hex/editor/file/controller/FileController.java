@@ -13,6 +13,7 @@ import hex.editor.file.history.FileHistoryImpl;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 
 public class FileController {
@@ -21,11 +22,14 @@ public class FileController {
     FileViewer fileViewer;
     FileHistory fileHistory;
 
+    List<FileListener> fileListeners;
+
     public FileController(Path path) throws IOException {
         FileHolder fileHolder = new FileHolder(path);
         fileChanger = fileHolder;
         fileViewer = fileHolder;
         fileHistory = new FileHistoryImpl(fileChanger);
+        fileListeners = new ArrayList<>();
     }
 
     public void processEvent(FileEvent fileEvent){
@@ -56,5 +60,12 @@ public class FileController {
         return fileViewer.viewFile(position);
     }
 
+    public void subscribeListener(FileListener eventListener){
+        fileListeners.add(eventListener);
+    }
+
+    private void notifyListeners(FileEvent event){
+        fileListeners.forEach( fileListener -> fileListener.notify(event));
+    }
 
 }

@@ -27,7 +27,7 @@ public class FileHistoryImpl implements FileHistory {
         if(currentTransaction != null){
             boolean add = currentTransaction.addBlock(block);
             if(!add){
-                undoStack.push(currentTransaction);
+                undoStack.addLast(currentTransaction);
                 checkSize();
                 currentTransaction = null;
             }
