@@ -2,6 +2,7 @@ package hex.editor.file;
 
 import hex.editor.config.HexEditorConfig;
 import hex.editor.exception.FileException;
+import hex.editor.file.dto.PageResult;
 import hex.editor.file.event.ChangeEvent;
 import hex.editor.file.page.FilePage;
 import hex.editor.file.page.PageOperations;
@@ -42,6 +43,7 @@ public class FileHolder implements FileChanger, FileViewer{
         return pageSize;
     }
 
+    @Override
     public Long getFileSize() {
         return fileSize;
     }
@@ -60,9 +62,9 @@ public class FileHolder implements FileChanger, FileViewer{
         return newPage;
     }
 
-    public List<Byte> viewFile(Long position){
+    public PageResult viewFile(Long position){
         PageOperations page = getPage(position);
-        return page.readPage();
+        return new PageResult(page.readPage(), page.getIndex());
     }
 
     @Override

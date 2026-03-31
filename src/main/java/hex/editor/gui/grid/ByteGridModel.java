@@ -1,23 +1,27 @@
 package hex.editor.gui.grid;
 
+import hex.editor.adapter.PageChanger;
 import hex.editor.config.HexEditorConfig;
 import hex.editor.file.controller.FileController;
+import hex.editor.file.dto.PageResult;
 import hex.editor.file.event.ByteBlock;
 import hex.editor.file.event.FileEventType;
 
 import javax.swing.table.AbstractTableModel;
-import java.util.ArrayList;
 import java.util.List;
 
 public class ByteGridModel extends AbstractTableModel {
     private List<Byte> flatData;
     private final int tableWidth;
-    private final FileController fileController;
+    private final int tableHeight;
+    private final PageChanger pageChanger;
 
-    public ByteGridModel(List<Byte> byteList, FileController fileController){
-        flatData = byteList;
+
+    public ByteGridModel(PageChanger pageChanger){
+        this.pageChanger = pageChanger;
+        flatData = pageChanger.getData();
         tableWidth = HexEditorConfig.getInstance().getInteger("editor.table.width");
-        this.fileController = fileController;
+        tableHeight = HexEditorConfig.getInstance().getInteger("editor.table.height");
     }
 
     @Override
@@ -34,7 +38,7 @@ public class ByteGridModel extends AbstractTableModel {
     public Byte getValueAt(int rowIndex, int columnIndex) {
         int index = rowIndex * tableWidth + columnIndex;
         if(index >= flatData.size()){
-            return (byte) 0;
+            return null;
         }
         return flatData.get(index);
     }
@@ -44,9 +48,10 @@ public class ByteGridModel extends AbstractTableModel {
         return String.valueOf(column);
     }
 
+
     @Override
     public boolean isCellEditable(int row, int column) {
-        return true;
+        return row * tableWidth + column < flatData.size();
     }
     @Override
     public Class<?> getColumnClass(int column) {
@@ -58,8 +63,7 @@ public class ByteGridModel extends AbstractTableModel {
         if (value instanceof Byte) {
             int position = rowIndex * tableWidth + columnIndex;
             byte newValue = (Byte) value;
-
-            fileController.processEvent(new ByteBlock(position, newValue,FileEventType.UPDATE,0));
+            pageChanger.update(position, newValue);
         }
     }
 }

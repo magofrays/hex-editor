@@ -16,6 +16,7 @@ public interface PageOperations extends FileChanger {
     List<Byte> readPage();
     void savePage();
     void loadPage(Integer pageSize, Long fileSize);
+    Integer getIndex();
     default void saveFile(){
         savePage();
     }

@@ -19,6 +19,7 @@ public class FilePage implements PageOperations {
     ByteBuffer actualBuffer;
     List<Byte> currentBuffer;
     Boolean isSaved;
+    Boolean isLoaded;
     Instant updatedAt;
     FileChannel fileChannel;
     Integer pageSize;
@@ -26,6 +27,7 @@ public class FilePage implements PageOperations {
     public FilePage(FileChannel fileChannel, Long position) {
         currentBuffer = new ArrayList<>();
         isSaved = true;
+        isLoaded = false;
         this.position = position;
         this.fileChannel = fileChannel;
     }
@@ -49,7 +51,14 @@ public class FilePage implements PageOperations {
         actualBuffer = buf;
         currentBuffer.clear();
         currentBuffer.addAll(bufferToList(buf));
+        isLoaded = true;
         this.updatedAt = Instant.now();
+    }
+
+    @Override
+    public Integer getIndex() {
+        if(!isLoaded) return 0;
+        return Math.toIntExact(position / pageSize);
     }
 
     public ArrayList<Byte> bufferToList(ByteBuffer buffer) {
@@ -107,12 +116,6 @@ public class FilePage implements PageOperations {
             bufferToSave.flip();
             fileChannel.position(position);
             int bytesWritten = fileChannel.write(bufferToSave);
-            if (bytesWritten != currentBuffer.size()) {
-                throw new FileException(
-                        "Error saving page at position " + position,
-                        String.format("Only %d of %d bytes written", bytesWritten, currentBuffer.size())
-                );
-            }
             isSaved = true;
             updatedAt = Instant.now();
 

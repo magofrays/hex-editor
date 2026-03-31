@@ -6,7 +6,7 @@ import java.awt.*;
 
 public class ByteCellRenderer extends DefaultTableCellRenderer {
 
-    private boolean showHex = false;
+    private boolean showHex = true;
 
 
     public ByteCellRenderer() {
@@ -33,6 +33,9 @@ public class ByteCellRenderer extends DefaultTableCellRenderer {
             } else {
                 setBackground(Color.WHITE);
             }
+        } else {
+            setBackground(Color.RED);
+            setText("");
         }
 
         return this;

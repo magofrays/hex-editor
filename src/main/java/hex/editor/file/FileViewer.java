@@ -1,8 +1,9 @@
 package hex.editor.file;
 
-import java.util.List;
-import java.util.Map;
+import hex.editor.file.dto.PageResult;
 
 public interface FileViewer {
-    List<Byte> viewFile(Long position);
+    PageResult viewFile(Long position);
+
+    Long getFileSize();
 }

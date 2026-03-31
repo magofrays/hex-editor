@@ -1,49 +1,54 @@
 package hex.editor.gui.grid.listener;
 
-import hex.editor.file.controller.FileController;
-import hex.editor.file.event.ByteBlock;
-import hex.editor.file.event.FileEventType;
-import hex.editor.file.event.HistoryEvent;
-import hex.editor.file.event.SaveEvent;
+import hex.editor.adapter.PageChanger;
+import hex.editor.gui.grid.ByteGrid;
 
 import javax.swing.*;
+import java.awt.*;
+import java.awt.datatransfer.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ByteGridKeyListener extends KeyAdapter {
     private final JTable table;
-    private final FileController fileController;
+    private final PageChanger pageChanger;
 
-    public ByteGridKeyListener(JTable table, FileController fileController){
-        this.table = table;
-        this.fileController = fileController;
+    public ByteGridKeyListener(ByteGrid grid, PageChanger pageChanger){
+        this.table = grid;
+        this.pageChanger = pageChanger;
     }
 
     @Override
     public void keyPressed(KeyEvent e) {
         int row = table.getSelectedRow();
-        int col = table.getSelectedColumn();
+        int colStart = table.getSelectedColumn();
+        int colEnd = colStart + table.getSelectedColumnCount();
 
-        if (row < 0 || col < 0) return;
+        if (row < 0 || colStart < 0) return;
 
-        int position = row * table.getColumnCount() + col;
+        int start = row * table.getColumnCount() + colStart;
+        int end = row * table.getColumnCount() + colEnd;
         if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_S) {
-            fileController.processEvent(new SaveEvent());
+            pageChanger.save();
             e.consume();
-            return;
         }
-
-
-        if (e.getKeyCode() == KeyEvent.VK_DELETE) {
-            fileController.processEvent(new ByteBlock(position, FileEventType.DELETE, 0));
+        else if (e.getKeyCode() == KeyEvent.VK_DELETE) {
+            if(colEnd-colStart == 1){
+                pageChanger.delete(start);
+            } else {
+                pageChanger.delete(start, end);
+            }
             table.repaint();
             e.consume();
 
         }
         else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
-            fileController.processEvent(new ByteBlock(position, FileEventType.DELETE, 0));
-
-            int newCol = col - 1;
+            pageChanger.delete(start);
+            int newCol = colStart - 1;
             int newRow = row;
             if (newCol < 0) {
                 newCol = table.getColumnCount() - 1;
@@ -56,20 +61,47 @@ public class ByteGridKeyListener extends KeyAdapter {
             table.repaint();
             e.consume();
         }
-        else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-            fileController.processEvent(new ByteBlock(position, (byte) 0,FileEventType.INSERT, 0));
+        else if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_Z) {
+            pageChanger.undo();
             table.repaint();
             e.consume();
         }
-        if (e.isControlDown() && e.getKeyCode() == KeyEvent.VK_Z) {
-            fileController.processEvent(HistoryEvent.UNDO);
+        else if (e.isControlDown() && e.isShiftDown() && e.getKeyCode() == KeyEvent.VK_Z) {
+            pageChanger.redo();
             table.repaint();
             e.consume();
         }
-        if (e.isControlDown() && e.isShiftDown() && e.getKeyCode() == KeyEvent.VK_Z) {
-            fileController.processEvent(HistoryEvent.REDO);
-            table.repaint();
-            e.consume();
+
+        else if(e.isControlDown() && e.getKeyCode() == KeyEvent.VK_C){
+            StringBuilder data = new StringBuilder();
+            for(int i = start; i != end; i++){
+                data.append(((Byte) table.getValueAt(row, i)).toString());
+                if(i != end-1){
+                    data.append(",");
+                }
+            }
+            StringSelection selection = new StringSelection(data.toString());
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            clipboard.setContents(selection, null);
+        }
+        else if(e.isControlDown() && e.getKeyCode() == KeyEvent.VK_V){
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            Transferable t = clipboard.getContents(null);
+
+            if (t != null && t.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+                try {
+                    String text = (String) t.getTransferData(DataFlavor.stringFlavor);
+                    String[] data = text.split("\t");
+                    byte[] bytes = new byte[data.length];
+                    for (int i = 0; i < data.length; i++) {
+                        bytes[i] = Byte.parseByte(data[i].trim());
+                    }
+                    pageChanger.update(start, bytes);
+                    table.repaint();
+                } catch (UnsupportedFlavorException | IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
         }
     }
 }

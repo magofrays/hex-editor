@@ -1,22 +1,25 @@
 package hex.editor.gui.grid;
 
+import hex.editor.adapter.PageChanger;
+import hex.editor.file.controller.FileController;
+
 import javax.swing.*;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableModel;
-import java.util.List;
 
 public class ByteGrid extends JTable {
+
+    PageChanger pageChanger;
+
     public ByteGrid(TableModel model){
         super(model);
         initUI();
     }
 
     public void initUI(){
-        setRowSelectionAllowed(false);
         TableColumnModel cm = getColumnModel();
         setCellSelectionEnabled(true);
         getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        cm.setColumnSelectionAllowed(true);
         cm.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
         setAutoResizeMode(AUTO_RESIZE_OFF);
         for (int i = 0; i < getColumnCount(); i++) {
