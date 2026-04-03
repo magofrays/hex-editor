@@ -34,7 +34,7 @@ public class FileHolder implements FileChanger, FileViewer{
         this.fileSize = Files.size(this.filePath);
         this.fileChannel = FileChannel.open(this.filePath, StandardOpenOption.READ, StandardOpenOption.WRITE);
         pages = new TreeMap<>();
-        pageSize = HexEditorConfig.getInstance().getInteger("file.page.size");
+        pageSize = HexEditorConfig.getInstance().getInteger("editor.table.height") * HexEditorConfig.getInstance().getInteger("editor.table.width");
         lastPageIndex = fileSize/pageSize;
     }
 

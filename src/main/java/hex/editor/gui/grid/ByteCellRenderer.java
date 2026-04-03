@@ -10,7 +10,7 @@ public class ByteCellRenderer extends DefaultTableCellRenderer {
 
 
     public ByteCellRenderer() {
-        Font monospacedFont = new Font("Monospaced", Font.PLAIN, 16);
+        Font monospacedFont = new Font("Courier new", Font.BOLD, 20);
         setHorizontalAlignment(CENTER);
         setFont(monospacedFont);
     }
@@ -28,10 +28,17 @@ public class ByteCellRenderer extends DefaultTableCellRenderer {
             } else {
                 setText(String.format("%3d", unsignedValue));
             }
+
             if (isSelected) {
                 setBackground(Color.BLUE);
-            } else {
+                setForeground(Color.WHITE);
+            } else if(unsignedValue == 0){
+                setBackground(Color.DARK_GRAY);
+                setForeground(Color.WHITE);
+            }
+            else {
                 setBackground(Color.WHITE);
+                setForeground(Color.BLACK);
             }
         } else {
             setBackground(Color.RED);
@@ -39,13 +46,6 @@ public class ByteCellRenderer extends DefaultTableCellRenderer {
         }
 
         return this;
-    }
-
-
-
-
-    public void setShowHex(boolean showHex) {
-        this.showHex = showHex;
     }
 
 

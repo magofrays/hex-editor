@@ -1,11 +1,7 @@
-package hex.editor.gui.grid;
+package hex.editor.gui.grid.model;
 
 import hex.editor.adapter.PageChanger;
 import hex.editor.config.HexEditorConfig;
-import hex.editor.file.controller.FileController;
-import hex.editor.file.dto.PageResult;
-import hex.editor.file.event.ByteBlock;
-import hex.editor.file.event.FileEventType;
 
 import javax.swing.table.AbstractTableModel;
 import java.util.List;

@@ -4,6 +4,9 @@ import hex.editor.file.controller.FileController;
 import hex.editor.file.dto.PageResult;
 import hex.editor.file.event.*;
 
+import java.awt.*;
+import java.awt.datatransfer.*;
+import java.io.IOException;
 import java.util.List;
 
 public class PageChanger {
@@ -54,5 +57,35 @@ public class PageChanger {
 
     public void redo() {
         fileController.processEvent(HistoryEvent.REDO);
+    }
+
+    public void copy(byte[] data){
+        StringBuilder sb = new StringBuilder();
+        for(byte b : data){
+            sb.append(b).append(",");
+        }
+        StringSelection selection = new StringSelection(sb.toString());
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clipboard.setContents(selection, null);
+    }
+
+    public void paste(Integer start, boolean insert){
+        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+        Transferable t = clipboard.getContents(null);
+
+        if (t != null && t.isDataFlavorSupported(DataFlavor.stringFlavor)) {
+            try {
+                String text = (String) t.getTransferData(DataFlavor.stringFlavor);
+                String[] data = text.split(",");
+                byte[] bytes = new byte[data.length];
+                for (int i = 0; i < data.length; i++) {
+                    bytes[i] = Byte.parseByte(data[i].trim());
+                }
+                if(insert) insert(start, bytes);
+                else update(start, bytes);
+            } catch (UnsupportedFlavorException | IOException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
     }
 }
