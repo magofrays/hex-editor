@@ -23,7 +23,7 @@ public class FileHolder implements FileChanger, FileViewer{
     final Path filePath;
     final FileChannel fileChannel;
     Long fileSize;
-    final Integer pageSize;
+    Integer pageSize;
     final Long lastPageIndex;
 
     public FileHolder(Path filePath) throws IOException {
@@ -83,6 +83,12 @@ public class FileHolder implements FileChanger, FileViewer{
         for(PageOperations page : pages.values()){
             page.loadPage(pageSize,fileSize);
         }
+    }
+
+    @Override
+    public void setPageSize(int width, int height) {
+        pages.clear();
+        pageSize = width*height;
     }
 
 }

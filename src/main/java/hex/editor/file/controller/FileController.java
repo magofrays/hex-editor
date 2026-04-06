@@ -61,12 +61,8 @@ public class FileController {
         return fileViewer.viewFile(position);
     }
 
-    public void subscribeListener(FileListener eventListener){
-        fileListeners.add(eventListener);
-    }
-
-    private void notifyListeners(FileEvent event){
-        fileListeners.forEach( fileListener -> fileListener.notify(event));
+    public void setPageSize(int width, int height){
+        fileChanger.setPageSize(width, height);
     }
 
     public Long getFileSize() {

@@ -10,7 +10,7 @@ public class ByteCellRenderer extends DefaultTableCellRenderer {
 
 
     public ByteCellRenderer() {
-        Font monospacedFont = new Font("Courier new", Font.BOLD, 20);
+        Font monospacedFont = new Font("Courier new", Font.BOLD, 15);
         setHorizontalAlignment(CENTER);
         setFont(monospacedFont);
     }

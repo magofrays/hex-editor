@@ -44,10 +44,10 @@ public class FileHistoryImpl implements FileHistory {
     public void collectTransaction(Transaction transaction) {
 
         if(currentTransaction != null){
-            undoStack.push(currentTransaction);
+            undoStack.addLast(currentTransaction);
             currentTransaction = null;
         }
-        undoStack.push(transaction);
+        undoStack.addLast(transaction);
         checkSize();
     }
 

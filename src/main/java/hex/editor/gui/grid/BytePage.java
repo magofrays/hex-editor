@@ -5,6 +5,7 @@ import hex.editor.file.controller.FileController;
 import hex.editor.gui.grid.model.ByteGridModel;
 
 import javax.swing.*;
+import java.awt.*;
 
 public class BytePage extends JPanel {
     ByteGrid byteGrid;
@@ -12,16 +13,29 @@ public class BytePage extends JPanel {
     ByteCellRenderer byteCellRenderer;
     ByteCellEditor byteCellEditor;
     PageChanger pageChanger;
+    JPanel gridContent;
+    Integer tableWidth;
+    Integer tableHeight;
 
-    public BytePage(FileController fileController, Long position){
+    public BytePage(FileController fileController, Long position, Integer tableWidth, Integer tableHeight){
+        this.tableHeight = tableHeight;
+        this.tableWidth = tableWidth;
         this.pageChanger = new PageChanger(fileController, position);
-        this.byteGridModel = new ByteGridModel(pageChanger);
-        this.byteGrid = new ByteGrid(byteGridModel, pageChanger);
-        this.byteCellRenderer = new ByteCellRenderer();
-        byteGrid.setDefaultRenderer(Byte.class, byteCellRenderer);
+        this.byteGridModel = new ByteGridModel(pageChanger, tableWidth, tableHeight);
+        gridContent = new JPanel();
+        gridContent.setLayout(new BoxLayout(gridContent, BoxLayout.X_AXIS));
 
+        this.byteGrid = new ByteGrid(byteGridModel, pageChanger);
+        int rows = byteGrid.getRowCount();
+        int columns = byteGrid.getColumnCount();
+        gridContent.add(this.byteGrid);
+        gridContent.add(new RowHeaderList(rows, columns, position));
+        this.byteCellRenderer = new ByteCellRenderer();
+        this.byteCellEditor = new ByteCellEditor();
+        byteGrid.setDefaultRenderer(Byte.class, byteCellRenderer);
+        byteGrid.setDefaultEditor(Byte.class, byteCellEditor);
     }
-    public ByteGrid getGrid(){
-        return byteGrid;
+    public Component getGrid(){
+        return gridContent;
     }
 }

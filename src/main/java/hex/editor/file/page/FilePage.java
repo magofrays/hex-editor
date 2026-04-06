@@ -106,6 +106,7 @@ public class FilePage implements PageOperations {
         }
         try {
             int bufSize = Math.min(pageSize, Math.toIntExact(fileSize-position));
+            bufSize = Math.max(currentBuffer.size(), bufSize);
             ByteBuffer bufferToSave = ByteBuffer.allocate(bufSize);
             for (int i = 0; i < Math.min(currentBuffer.size(), pageSize); i++) {
                 bufferToSave.put(currentBuffer.get(i));
