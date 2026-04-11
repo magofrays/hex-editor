@@ -62,6 +62,7 @@ public class FileController {
     }
 
     public void setPageSize(int width, int height){
+        processEvent(new SaveEvent());
         fileChanger.setPageSize(width, height);
     }
 

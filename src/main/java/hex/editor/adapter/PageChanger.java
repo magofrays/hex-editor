@@ -62,7 +62,7 @@ public class PageChanger {
     public void copy(byte[] data){
         StringBuilder sb = new StringBuilder();
         for(byte b : data){
-            sb.append(b).append(",");
+            sb.append(String.format("%02X", b)).append(" ");
         }
         StringSelection selection = new StringSelection(sb.toString());
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
@@ -76,10 +76,10 @@ public class PageChanger {
         if (t != null && t.isDataFlavorSupported(DataFlavor.stringFlavor)) {
             try {
                 String text = (String) t.getTransferData(DataFlavor.stringFlavor);
-                String[] data = text.split(",");
+                String[] data = text.split(" ");
                 byte[] bytes = new byte[data.length];
                 for (int i = 0; i < data.length; i++) {
-                    bytes[i] = Byte.parseByte(data[i].trim());
+                    bytes[i] = (byte) Integer.parseInt(data[i].trim(), 16);
                 }
                 if(insert) insert(start, bytes);
                 else update(start, bytes);

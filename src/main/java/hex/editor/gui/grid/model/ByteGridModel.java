@@ -8,7 +8,6 @@ import java.util.List;
 public class ByteGridModel extends AbstractTableModel {
     private final List<Byte> flatData;
     private final int tableWidth;
-    private final int tableHeight;
     private final PageChanger pageChanger;
 
 
@@ -16,7 +15,6 @@ public class ByteGridModel extends AbstractTableModel {
         this.pageChanger = pageChanger;
         flatData = pageChanger.getData();
         this.tableWidth = tableWidth;
-        this.tableHeight = tableHeight;
     }
 
     @Override

@@ -1,13 +1,18 @@
 package hex.editor.gui.grid;
 
-import hex.editor.HexEditor;
 import hex.editor.adapter.PageChanger;
 import hex.editor.config.HexEditorConfig;
 
 import javax.swing.*;
 import javax.swing.table.TableModel;
-import java.awt.event.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EventObject;
+import java.util.List;
 
 public class ByteGrid extends JTable {
 
@@ -15,14 +20,18 @@ public class ByteGrid extends JTable {
     Integer cellWidth = HexEditorConfig.getInstance().getInteger("editor.cell.width");
     Integer cellHeight = HexEditorConfig.getInstance().getInteger("editor.cell.height");
     ActionMap actionMap = getActionMap();
+    InputMap inputMap = getInputMap(JComponent.WHEN_FOCUSED);
+    private int selectionStart;
+    private int selectionEnd;
+    private int anchorIndex;
+    private int leadIndex;
 
     public ByteGrid(TableModel model, PageChanger pageChanger){
         super(model);
         this.pageChanger = pageChanger;
         initUI();
-
+        setupCustomSelection();
         setupKeyBindings();
-
         JPopupMenu popup = getJPopupMenu();
         addMouseListener(new MouseAdapter() {
             @Override
@@ -36,6 +45,95 @@ public class ByteGrid extends JTable {
                 }
             }
         });
+        selectionStart = 0;
+        selectionEnd = 0;
+        anchorIndex = 0;
+        leadIndex = 0;
+    }
+
+    private void setupCustomSelection() {
+        addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    return;
+                }
+                int row = rowAtPoint(e.getPoint());
+                int col = columnAtPoint(e.getPoint());
+                if (row < 0 || col < 0) return;
+
+                int index = row * getColumnCount() + col;
+
+                if (e.isShiftDown() && anchorIndex != -1) {
+                    selectRange(anchorIndex, index);
+                } else {
+                    selectionStart = index;
+                    selectionEnd = index;
+                    anchorIndex = index;
+                }
+                leadIndex = index;
+                repaint();
+            }
+        });
+        addMouseMotionListener(new MouseMotionAdapter() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    return;
+                }
+                int row = rowAtPoint(e.getPoint());
+                int col = columnAtPoint(e.getPoint());
+                if (row < 0 || col < 0) return;
+                int index = row * getColumnCount() + col;
+                selectRange(anchorIndex, index);
+                leadIndex = index;
+                repaint();
+            }
+        });
+    }
+
+    private void selectRange(int start, int end) {
+        selectionStart = Math.min(start, end);
+        selectionEnd = Math.max(start, end);
+    }
+
+    public List<Integer> getSelectedPositions() {
+        List<Integer> positions = new ArrayList<>();
+        if (selectionStart != -1 && selectionEnd != -1) {
+            for (int i = selectionStart; i <= selectionEnd; i++) {
+                positions.add(i);
+            }
+        }
+        return positions;
+    }
+
+    public byte[] getSelectedBytes() {
+        byte[] result = new byte[selectionEnd - selectionStart + 1];
+        List<Byte> data = pageChanger.getData();
+        for (int i = selectionStart; i < selectionEnd+1; i++) {
+            result[i - selectionStart] = data.get(i);
+        }
+        return result;
+    }
+
+    public void clearSelected() {
+        if (pageChanger != null && !pageChanger.getData().isEmpty()) {
+            selectionStart = 0;
+            selectionEnd = 0;
+            anchorIndex = 0;
+            leadIndex = 0;
+        } else {
+            selectionStart = -1;
+            selectionEnd = -1;
+            anchorIndex = -1;
+            leadIndex = -1;
+        }
+        repaint();
+    }
+
+    public boolean isCellSelected(int row, int col) {
+        int index = row * getColumnCount() + col;
+        return selectionStart != -1 && index >= selectionStart && index <= selectionEnd;
     }
 
     private JPopupMenu getJPopupMenu() {
@@ -75,12 +173,12 @@ public class ByteGrid extends JTable {
         popup.add(deleteWithOffsetItem);
         popup.add(insertZeroItem);
         return popup;
-
     }
 
     public void initUI(){
-        setCellSelectionEnabled(true);
-        setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+        setCellSelectionEnabled(false);
+        setRowSelectionAllowed(false);
+        setColumnSelectionAllowed(false);
         setAutoResizeMode(AUTO_RESIZE_OFF);
         for (int i = 0; i < getColumnCount(); i++) {
             getColumnModel().getColumn(i).setPreferredWidth(cellWidth);
@@ -88,20 +186,25 @@ public class ByteGrid extends JTable {
             getColumnModel().getColumn(i).setMaxWidth(30);
         }
         setRowHeight(cellHeight);
-
     }
+
     @Override
     public boolean editCellAt(int row, int column, EventObject e) {
         if (e instanceof MouseEvent) {
+            MouseEvent me = (MouseEvent) e;
+            if (me.getClickCount() < 2) {
+                return false;
+            }
+        }
+        if (selectionStart == -1) {
             return false;
         }
-
-        return super.editCellAt(row, column, e);
+        int actualRow = selectionStart / getColumnCount();
+        int actualCol = selectionStart % getColumnCount();
+        return super.editCellAt(actualRow, actualCol, e);
     }
+
     private void setupKeyBindings() {
-
-        InputMap inputMap = getInputMap(JComponent.WHEN_FOCUSED);
-
         inputMap.put(KeyStroke.getKeyStroke("ctrl S"), "save");
         actionMap.put("save", new AbstractAction() {
             @Override
@@ -113,53 +216,32 @@ public class ByteGrid extends JTable {
             }
         });
 
-        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, KeyEvent.SHIFT_DOWN_MASK), "delete with offset");
+        inputMap.put(KeyStroke.getKeyStroke("shift DELETE"), "delete with offset");
         actionMap.put("delete with offset", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (pageChanger == null) return;
-
-                int row = getSelectedRow();
-                int colStart = getSelectedColumn();
-                int colEnd = colStart + getSelectedColumnCount();
-
-                if (row < 0 || colStart < 0) return;
-
-                int start = row * getColumnCount() + colStart;
-                int end = row * getColumnCount() + colEnd;
-
-                if (colEnd - colStart == 1) {
-                    pageChanger.delete(start);
-                } else {
-                    pageChanger.delete(start, end);
+                if (selectionStart == -1) return;
+                if(selectionStart != selectionEnd){
+                    pageChanger.delete(selectionStart, selectionEnd + 1);
+                } else{
+                    pageChanger.delete(selectionStart);
                 }
                 repaint();
             }
         });
+
         inputMap.put(KeyStroke.getKeyStroke("DELETE"), "delete");
         actionMap.put("delete", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (pageChanger == null) return;
-
-                int row = getSelectedRow();
-                int colStart = getSelectedColumn();
-                int colEnd = colStart + getSelectedColumnCount();
-
-                if (row < 0 || colStart < 0) return;
-
-                int start = row * getColumnCount() + colStart;
-                int end = row * getColumnCount() + colEnd;
-
-                if (colEnd - colStart == 1) {
-                    pageChanger.update(start, (byte)0);
-                } else {
-                    byte[] val = new byte[end-start];
-                    for(int i = 0; i != end-start; i++){
-                        val[i] = 0;
-                    }
-                    pageChanger.update(start, val);
+                if (selectionStart == -1 && selectionEnd == -1) return;
+                byte[] data = new byte[selectionEnd-selectionStart+1];
+                for (int i = 0; i != selectionEnd - selectionStart + 1; i++) {
+                    data[i] = 0;
                 }
+                pageChanger.update(selectionStart,  data);
                 repaint();
             }
         });
@@ -169,24 +251,18 @@ public class ByteGrid extends JTable {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (pageChanger == null) return;
-
-                int row = getSelectedRow();
-                int colStart = getSelectedColumn();
-
-                if (row < 0 || colStart < 0) return;
-
-                int start = row * getColumnCount() + colStart;
-                pageChanger.delete(start);
-
-                int newCol = colStart - 1;
-                int newRow = row;
-                if (newCol < 0) {
-                    newCol = getColumnCount() - 1;
-                    newRow = row - 1;
+                if(selectionStart == -1) return;
+                if(selectionStart != selectionEnd){
+                    pageChanger.delete(selectionStart, selectionEnd);
+                } else {
+                    pageChanger.delete(selectionStart);
                 }
-
-                if (newRow >= 0 && newCol >= 0) {
-                    changeSelection(newRow, newCol, false, false);
+                int newPos = selectionStart - 1;
+                if (newPos >= 0) {
+                    selectionStart = newPos;
+                    selectionEnd = newPos;
+                    anchorIndex = newPos;
+                    leadIndex = newPos;
                 }
                 repaint();
             }
@@ -220,17 +296,10 @@ public class ByteGrid extends JTable {
             public void actionPerformed(ActionEvent e) {
                 if (pageChanger == null) return;
 
-                int row = getSelectedRow();
-                int colStart = getSelectedColumn();
-                int colEnd = colStart + getSelectedColumnCount();
-
-                if (row < 0 || colStart < 0) return;
-
-                byte[] data = new byte[colEnd - colStart];
-                for (int i = 0; i < colEnd - colStart; i++) {
-                    data[i] = (byte) getValueAt(row, colStart + i);
+                byte[] data = getSelectedBytes();
+                if (data.length > 0) {
+                    pageChanger.copy(data);
                 }
-                pageChanger.copy(data);
             }
         });
 
@@ -239,29 +308,19 @@ public class ByteGrid extends JTable {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (pageChanger == null) return;
-
-                int row = getSelectedRow();
-                int colStart = getSelectedColumn();
-
-                if (row < 0 || colStart < 0) return;
-                int start = row * getColumnCount() + colStart;
-                pageChanger.paste(start, false);
+                if (selectionStart == -1) return;
+                pageChanger.paste(selectionStart, false);
                 repaint();
             }
         });
+
         inputMap.put(KeyStroke.getKeyStroke("ctrl shift V"), "paste with insert");
         actionMap.put("paste with insert", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (pageChanger == null) return;
-
-                int row = getSelectedRow();
-                int colStart = getSelectedColumn();
-
-                if (row < 0 || colStart < 0) return;
-
-                int start = row * getColumnCount() + colStart;
-                pageChanger.paste(start, true);
+                if (selectionStart == -1) return;
+                pageChanger.paste(selectionStart, true);
                 repaint();
             }
         });
@@ -270,19 +329,11 @@ public class ByteGrid extends JTable {
         actionMap.put("cut with offset", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                int row = getSelectedRow();
-                int colStart = getSelectedColumn();
-                int colEnd = colStart + getSelectedColumnCount();
-                if (row < 0 || colStart < 0) return;
-                int columnCount = getColumnCount();
-                int start = row * columnCount + colStart;
-                int end = row * columnCount + colEnd;
-                byte[] data = new byte[end-start];
-                for(int i = 0; i != end-start; i++){
-                    data[i] = (byte) getValueAt(row, colStart+i);
-                }
+                if (pageChanger == null) return;
+                if (selectionStart == -1) return;
+                byte[] data = getSelectedBytes();
                 pageChanger.copy(data);
-                pageChanger.delete(start, end);
+                pageChanger.delete(selectionStart, selectionEnd + 1);
                 repaint();
             }
         });
@@ -291,44 +342,188 @@ public class ByteGrid extends JTable {
         actionMap.put("cut", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                int row = getSelectedRow();
-                int colStart = getSelectedColumn();
-                int colEnd = colStart + getSelectedColumnCount();
-                if (row < 0 || colStart < 0) return;
-                int columnCount = getColumnCount();
-                int start = row * columnCount + colStart;
-                int end = row * columnCount + colEnd;
-                byte[] data = new byte[end-start];
-                byte[] val = new byte[end-start];
-                for(int i = 0; i != end-start; i++){
-                    data[i] = (byte) getValueAt(row, colStart+i);
-                    val[i] = 0;
-                }
+                if (pageChanger == null) return;
+                if (selectionStart == -1) return;
+                byte[] data = getSelectedBytes();
                 pageChanger.copy(data);
-                pageChanger.update(start, val);
+                Arrays.fill(data, (byte) 0);
+                pageChanger.update(selectionStart, data);
                 repaint();
             }
         });
-        inputMap.put(KeyStroke.getKeyStroke("Ctrl 0"), "insert zero"); // todo
+
+        inputMap.put(KeyStroke.getKeyStroke("ctrl 0"), "insert zero");
         actionMap.put("insert zero", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                int row = getSelectedRow();
-                int col = getSelectedColumn();
-                if (row < 0 && col < 0) return;
-                int position = row * getColumnCount() + col;
-                pageChanger.insert(position, (byte) 0);
+                if (pageChanger == null) return;
+                if (selectionStart == -1) return;
+                pageChanger.insert(selectionStart, (byte) 0);
                 repaint();
-                int nextCol = col + 1;
-                int nextRow = row;
-                if (nextCol >= getColumnCount()) {
-                    nextCol = 0;
-                    nextRow = row + 1;
-                }
-                if (nextRow < getRowCount()) {
-                    changeSelection(nextRow, nextCol, false, false);
-
             }
+        });
+        selectionKeyBindings();
+    }
+
+    private void selectionKeyBindings(){
+        inputMap.put(KeyStroke.getKeyStroke("RIGHT"), "moveRight");
+        actionMap.put("moveRight", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (selectionEnd == -1) return;
+                int nextPos = selectionEnd + 1;
+                int maxPos = pageChanger.getData().size() - 1;
+                if (nextPos <= maxPos) {
+                    selectionStart = nextPos;
+                    selectionEnd = nextPos;
+                    anchorIndex = nextPos;
+                    leadIndex = nextPos;
+                    repaint();
+                }
+            }
+        });
+
+        inputMap.put(KeyStroke.getKeyStroke("LEFT"), "moveLeft");
+        actionMap.put("moveLeft", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (selectionStart == -1) return;
+                int prevPos = selectionStart - 1;
+                if (prevPos >= 0) {
+                    selectionStart = prevPos;
+                    selectionEnd = prevPos;
+                    anchorIndex = prevPos;
+                    leadIndex = prevPos;
+                    repaint();
+                }
+            }
+        });
+
+        inputMap.put(KeyStroke.getKeyStroke("DOWN"), "moveDown");
+        actionMap.put("moveDown", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (selectionEnd == -1) return;
+                int columns = getColumnCount();
+                int nextPos = selectionEnd + columns;
+                int maxPos = pageChanger.getData().size() - 1;
+                if (nextPos <= maxPos) {
+                    selectionStart = nextPos;
+                    selectionEnd = nextPos;
+                    anchorIndex = nextPos;
+                    leadIndex = nextPos;
+                    repaint();
+                }
+            }
+        });
+
+        inputMap.put(KeyStroke.getKeyStroke("UP"), "moveUp");
+        actionMap.put("moveUp", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (selectionStart == -1) return;
+                int columns = getColumnCount();
+                int prevPos = selectionStart - columns;
+                if (prevPos >= 0) {
+                    selectionStart = prevPos;
+                    selectionEnd = prevPos;
+                    anchorIndex = prevPos;
+                    leadIndex = prevPos;
+                    repaint();
+                }
+            }
+        });
+
+        inputMap.put(KeyStroke.getKeyStroke("shift RIGHT"), "extendRight");
+        actionMap.put("extendRight", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (anchorIndex == -1) return;
+                int currentPos = leadIndex != -1 ? leadIndex : anchorIndex;
+                int nextPos = currentPos + 1;
+                int maxPos = pageChanger.getData().size() - 1;
+
+                if (nextPos <= maxPos) {
+                    selectRange(anchorIndex, nextPos);
+                    leadIndex = nextPos;
+                    repaint();
+                }
+            }
+        });
+
+        inputMap.put(KeyStroke.getKeyStroke("shift LEFT"), "extendLeft");
+        actionMap.put("extendLeft", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (anchorIndex == -1) return;
+
+                int currentPos = leadIndex != -1 ? leadIndex : anchorIndex;
+                int prevPos = currentPos - 1;
+
+                if (prevPos >= 0) {
+                    selectRange(anchorIndex, prevPos);
+                    leadIndex = prevPos;
+                    repaint();
+                }
+            }
+        });
+
+        inputMap.put(KeyStroke.getKeyStroke("shift DOWN"), "extendDown");
+        actionMap.put("extendDown", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (anchorIndex == -1) return;
+
+                int currentPos = leadIndex != -1 ? leadIndex : anchorIndex;
+                int columns = getColumnCount();
+                int nextPos = currentPos + columns;
+                int maxPos = pageChanger.getData().size() - 1;
+
+                if (nextPos <= maxPos) {
+                    selectRange(anchorIndex, nextPos);
+                    leadIndex = nextPos;
+                    repaint();
+                }
+            }
+        });
+
+        inputMap.put(KeyStroke.getKeyStroke("shift UP"), "extendUp");
+        actionMap.put("extendUp", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (anchorIndex == -1) return;
+
+                int currentPos = leadIndex != -1 ? leadIndex : anchorIndex;
+                int columns = getColumnCount();
+                int prevPos = currentPos - columns;
+
+                if (prevPos >= 0) {
+                    selectRange(anchorIndex, prevPos);
+                    leadIndex = prevPos;
+                    repaint();
+                }
+            }
+        });
+
+        inputMap.put(KeyStroke.getKeyStroke("ctrl A"), "selectAll");
+        actionMap.put("selectAll", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                int totalBytes = pageChanger.getData().size();
+                selectionStart = 0;
+                selectionEnd = totalBytes - 1;
+                anchorIndex = 0;
+                leadIndex = totalBytes - 1;
+                repaint();
+            }
+        });
+
+        inputMap.put(KeyStroke.getKeyStroke("ESCAPE"), "clearSelection");
+        actionMap.put("clearSelection", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                clearSelected();
+                repaint();
             }
         });
     }

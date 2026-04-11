@@ -5,8 +5,8 @@ import hex.editor.file.FileChanger;
 import java.util.List;
 
 public class PageResult {
-    private List<Byte> data;
-    private Integer pageIndex;
+    private final List<Byte> data;
+    private final Integer pageIndex;
 
     public PageResult(List<Byte> data, Integer pageIndex){
         this.data = data;

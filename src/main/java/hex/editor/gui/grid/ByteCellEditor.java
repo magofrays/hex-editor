@@ -7,9 +7,6 @@ import java.awt.*;
 public class ByteCellEditor extends AbstractCellEditor implements TableCellEditor {
     private final JTextField field;
     private Byte currentValue;
-    private JTable table;
-    private int currentRow;
-    private int currentColumn;
 
     public ByteCellEditor() {
         field = new JTextField();
@@ -42,10 +39,6 @@ public class ByteCellEditor extends AbstractCellEditor implements TableCellEdito
     @Override
     public Component getTableCellEditorComponent(JTable table, Object value,
                                                  boolean isSelected, int row, int column) {
-        this.table = table;
-        this.currentRow = row;
-        this.currentColumn = column;
-
         if (value instanceof Byte) {
             currentValue = (Byte) value;
             field.setText(String.format("%02X", currentValue));

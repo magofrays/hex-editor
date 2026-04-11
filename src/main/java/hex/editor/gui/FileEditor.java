@@ -26,8 +26,8 @@ public class FileEditor extends JPanel {
     private final JPanel list = new JPanel();
     private final JPanel content = new JPanel();
     private final JPanel columnHeader = new JPanel();
-    private Long currentPosition = 0L;
-    private Integer currentIndex = 0;
+    private Long currentPosition = (long) -pageSize;
+    private Integer currentIndex = -1;
 
     public FileEditor(String path) {
         try {
@@ -35,7 +35,7 @@ public class FileEditor extends JPanel {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        setLayout(new BorderLayout(10, 10));
+        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         columnHeader.setLayout(new BoxLayout(columnHeader, BoxLayout.Y_AXIS));
         content.add(columnHeader);
@@ -43,23 +43,31 @@ public class FileEditor extends JPanel {
         list.setLayout(new BoxLayout(list, BoxLayout.Y_AXIS));
         list.setAlignmentX(Component.LEFT_ALIGNMENT);
         content.add(list);
-        addNewPage();
-        JButton button = new JButton("Load new page");
-        button.setMinimumSize(new Dimension(600, 600));
-        button.setAlignmentX(Component.LEFT_ALIGNMENT);
-        content.add(button);
-        button.addActionListener(new AbstractAction() {
+        setNextPage();
+        JButton nextPageButton = new JButton("Следующая страница");
+        JButton prevPageButton = new JButton("Предыдущая страница");
+        JPanel pageButtons = new JPanel();
+        pageButtons.setLayout(new FlowLayout());
+        pageButtons.add(prevPageButton);
+        pageButtons.add(nextPageButton);
+        nextPageButton.addActionListener(new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                addNewPage();
+                setNextPage();
+            }
+        });
+        prevPageButton.addActionListener(new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                setPrevPage();
             }
         });
         JScrollPane jScrollPane = new JScrollPane(content);
         jScrollPane.getVerticalScrollBar().setUnitIncrement(32);
         jScrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         jScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        JPanel panel = new JPanel();
-        panel.setLayout(new FlowLayout());
+        JPanel headerPanel = new JPanel();
+        headerPanel.setLayout(new FlowLayout());
 
         JPanel sizePanel = new JPanel();
         NumberFormat intFormat = NumberFormat.getIntegerInstance();
@@ -117,18 +125,19 @@ public class FileEditor extends JPanel {
                     JOptionPane.showMessageDialog(null, "Значение не может быть отрицательным");
                     return;
                 }
-                currentIndex = getPageIndex(byteIndex);
-                currentPosition = ((long) currentIndex * pageSize);
+                currentIndex = getPageIndex(byteIndex) - 1;
+                currentPosition = ((long) currentIndex * pageSize - pageSize);
                 list.removeAll();
-                addNewPage();
+                setNextPage();
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(null, "Введите корректное число");
             }
         });
         bytePanel.add(goButton);
-        panel.add(sizePanel);
-        panel.add(bytePanel);
-        add(panel, "North");
+        headerPanel.add(sizePanel);
+        headerPanel.add(bytePanel);
+        headerPanel.add(pageButtons);
+        add(headerPanel);
         add(jScrollPane);
     }
 
@@ -142,7 +151,9 @@ public class FileEditor extends JPanel {
         return Math.toIntExact(index / pageSize);
     }
 
-    public void addNewPage(){
+    public void setNextPage(){
+        currentPosition += pageSize;
+        currentIndex++;
         if(!pages.containsKey(currentIndex)) {
             try {
                 BytePage page = new BytePage(fileController, currentPosition, tableWidth, tableHeight);
@@ -153,11 +164,31 @@ public class FileEditor extends JPanel {
             }
         }
         BytePage page = pages.get(currentIndex);
+        list.removeAll();
         list.add(page.getGrid());
         content.revalidate();
         content.repaint();
-        currentPosition += pageSize;
-        currentIndex++;
+    }
+
+    public void setPrevPage(){
+        if(currentPosition <= 0 && currentIndex <= 0) return;
+        currentPosition -= pageSize;
+        currentIndex--;
+        if(!pages.containsKey(currentIndex)) {
+            try {
+                BytePage page = new BytePage(fileController, currentPosition, tableWidth, tableHeight);
+                pages.put(currentIndex, page);
+            } catch (FileException e) {
+                JOptionPane.showMessageDialog(null,
+                        "Значение превышает размер файла: " + fileController.getFileSize());
+            }
+        }
+        BytePage page = pages.get(currentIndex);
+        list.removeAll();
+        list.add(page.getGrid());
+        content.revalidate();
+        content.repaint();
+
     }
 
     public void setPageSize(int width, int height){
@@ -165,11 +196,11 @@ public class FileEditor extends JPanel {
         pages.clear();
         list.removeAll();
         columnHeader.removeAll();
-        currentIndex = 0;
-        currentPosition = 0L;
+        currentIndex = getPageIndex(currentPosition) - 1;
+        currentPosition = ((long) currentIndex * pageSize - pageSize);
         tableWidth = width;
         tableHeight = height;
         createColumnHeader();
-        addNewPage();
+        setNextPage();
     }
 }
