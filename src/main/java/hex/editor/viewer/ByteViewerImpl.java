@@ -14,9 +14,32 @@ public class ByteViewerImpl implements ByteViewer {
     }
 
     @Override
+    public Long getUInt(byte[] bytes) {
+        return getInt(bytes) & 0xFFFFFFFFL;
+    }
+
+    @Override
     public Long getLong(byte[] bytes) {
         ByteBuffer wrapper = ByteBuffer.wrap(bytes);
         return wrapper.getLong();
+    }
+
+    @Override
+    public Integer getUShort(byte[] bytes) {
+        return (int) (getShort(bytes) & 0xFFFF);
+    }
+
+    @Override
+    public Short getShort(byte[] bytes) {
+        ByteBuffer wrapper = ByteBuffer.wrap(bytes);
+        return wrapper.getShort();
+    }
+
+    @Override
+    public String getULong(byte[] bytes) {
+        ByteBuffer wrapper = ByteBuffer.wrap(bytes);
+        long signed = wrapper.getLong();
+        return Long.toUnsignedString(signed);
     }
 
     @Override
@@ -28,7 +51,7 @@ public class ByteViewerImpl implements ByteViewer {
     @Override
     public Double getDouble(byte[] bytes) {
         ByteBuffer wrapper = ByteBuffer.wrap(bytes);
-        return  wrapper.getDouble();
+        return wrapper.getDouble();
     }
 
 

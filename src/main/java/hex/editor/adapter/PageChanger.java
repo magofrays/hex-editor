@@ -69,7 +69,7 @@ public class PageChanger {
         clipboard.setContents(selection, null);
     }
 
-    public void paste(Integer start, boolean insert){
+    public int paste(Integer start, boolean insert){
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         Transferable t = clipboard.getContents(null);
 
@@ -83,10 +83,12 @@ public class PageChanger {
                 }
                 if(insert) insert(start, bytes);
                 else update(start, bytes);
+                return bytes.length;
             } catch (UnsupportedFlavorException | IOException ex) {
                 throw new RuntimeException(ex);
             }
         }
+        return 0;
     }
 
 }

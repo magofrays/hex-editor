@@ -2,14 +2,17 @@ package hex.editor.gui.grid;
 
 import hex.editor.adapter.PageChanger;
 import hex.editor.config.HexEditorConfig;
+import hex.editor.viewer.ByteViewer;
+import hex.editor.viewer.ByteViewerImpl;
 
 import javax.swing.*;
 import javax.swing.table.TableModel;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
-import java.util.ArrayList;
+import java.beans.PropertyChangeListener;
 import java.util.Arrays;
 import java.util.EventObject;
 import java.util.List;
@@ -21,6 +24,7 @@ public class ByteGrid extends JTable {
     Integer cellHeight = HexEditorConfig.getInstance().getInteger("editor.cell.height");
     ActionMap actionMap = getActionMap();
     InputMap inputMap = getInputMap(JComponent.WHEN_FOCUSED);
+    ByteViewer byteViewer = new ByteViewerImpl();
     private int selectionStart;
     private int selectionEnd;
     private int anchorIndex;
@@ -49,6 +53,74 @@ public class ByteGrid extends JTable {
         selectionEnd = 0;
         anchorIndex = 0;
         leadIndex = 0;
+        setupByteViewPopup();
+    }
+
+    private void setupByteViewPopup() {
+        JPopupMenu byteViewMenu = new JPopupMenu();
+        byteViewMenu.setLayout(new FlowLayout());
+        byteViewMenu.setVisible(true);
+
+        PropertyChangeListener byteView = evt -> {
+            if ("selection".equals(evt.getPropertyName())) {
+                updateByteViewPosition(byteViewMenu);
+            }
+        };
+
+        addPropertyChangeListener(byteView);
+    }
+    private void updateByteViewPosition(JPopupMenu popup) {
+        if (selectionStart == -1 || selectionEnd == -1) return;
+
+        int columnStart = selectionStart % getColumnCount();
+        int rowStart = selectionStart / getColumnCount();
+        java.awt.Point tableLocation = getLocationOnScreen();
+        java.awt.Rectangle startRect = getCellRect(rowStart, columnStart, true);
+        popup.setLocation(startRect.x + tableLocation.x, startRect.y + tableLocation.y + cellHeight);
+
+        int size = selectionEnd - selectionStart + 1;
+        byte[] data = getSelectedBytes();
+
+        popup.removeAll();
+        popup.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(2, 5, 2, 5);
+        gbc.anchor = GridBagConstraints.WEST;
+
+        int row = 0;
+        popup.setVisible(size != 1);
+        if (size >= 2 && size < 4) {
+            addPopupRow(popup, gbc, row++, "Int16:", String.valueOf(byteViewer.getShort(data)));
+            addPopupRow(popup, gbc, row++, "UInt16:", String.valueOf(byteViewer.getUShort(data)));
+        }
+
+        if (size >= 4 && size < 8) {
+            addPopupRow(popup, gbc, row++, "Int32:", String.valueOf(byteViewer.getInt(data)));
+            addPopupRow(popup, gbc, row++, "UInt32:", String.valueOf(byteViewer.getUInt(data)));
+            addPopupRow(popup, gbc, row++, "Float:", String.valueOf(byteViewer.getFloat(data)));
+        }
+
+        if (size >= 8) {
+            addPopupRow(popup, gbc, row++, "Int64:", String.valueOf(byteViewer.getLong(data)));
+            addPopupRow(popup, gbc, row++, "UInt64:", byteViewer.getULong(data));
+            addPopupRow(popup, gbc, row, "Double:", String.valueOf(byteViewer.getDouble(data)));
+        }
+
+        popup.pack();
+    }
+
+    private void addPopupRow(JPopupMenu popup, GridBagConstraints gbc, int row, String label, String value) {
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        JLabel nameLabel = new JLabel(label);
+        nameLabel.setForeground(Color.DARK_GRAY);
+        popup.add(nameLabel, gbc);
+
+        gbc.gridx = 1;
+        JLabel valueLabel = new JLabel(value);
+        valueLabel.setForeground(Color.BLACK);
+        valueLabel.setFont(new Font("Monospaced", Font.BOLD, 11));
+        popup.add(valueLabel, gbc);
     }
 
     private void setupCustomSelection() {
@@ -67,11 +139,8 @@ public class ByteGrid extends JTable {
                 if (e.isShiftDown() && anchorIndex != -1) {
                     selectRange(anchorIndex, index);
                 } else {
-                    selectionStart = index;
-                    selectionEnd = index;
-                    anchorIndex = index;
+                    setSelection(index);
                 }
-                leadIndex = index;
                 repaint();
             }
         });
@@ -93,18 +162,12 @@ public class ByteGrid extends JTable {
     }
 
     private void selectRange(int start, int end) {
-        selectionStart = Math.min(start, end);
-        selectionEnd = Math.max(start, end);
-    }
-
-    public List<Integer> getSelectedPositions() {
-        List<Integer> positions = new ArrayList<>();
-        if (selectionStart != -1 && selectionEnd != -1) {
-            for (int i = selectionStart; i <= selectionEnd; i++) {
-                positions.add(i);
-            }
-        }
-        return positions;
+        int newSelectionStart = Math.min(start, end);
+        int newSelectionEnd = Math.max(start, end);
+        selectionStart = newSelectionStart;
+        selectionEnd = newSelectionEnd;
+        leadIndex = selectionEnd;
+        firePropertyChange("selection", 0, 1);
     }
 
     public byte[] getSelectedBytes() {
@@ -122,11 +185,7 @@ public class ByteGrid extends JTable {
             selectionEnd = 0;
             anchorIndex = 0;
             leadIndex = 0;
-        } else {
-            selectionStart = -1;
-            selectionEnd = -1;
-            anchorIndex = -1;
-            leadIndex = -1;
+            firePropertyChange("selection", 0, 1);
         }
         repaint();
     }
@@ -204,6 +263,15 @@ public class ByteGrid extends JTable {
         return super.editCellAt(actualRow, actualCol, e);
     }
 
+    public void setSelection(int newPos){
+
+        selectionStart = newPos;
+        selectionEnd = newPos;
+        anchorIndex = newPos;
+        leadIndex = newPos;
+        firePropertyChange("selection", 0, 1);
+    }
+
     private void setupKeyBindings() {
         inputMap.put(KeyStroke.getKeyStroke("ctrl S"), "save");
         actionMap.put("save", new AbstractAction() {
@@ -227,6 +295,7 @@ public class ByteGrid extends JTable {
                 } else{
                     pageChanger.delete(selectionStart);
                 }
+                setSelection(selectionStart);
                 repaint();
             }
         });
@@ -242,6 +311,7 @@ public class ByteGrid extends JTable {
                     data[i] = 0;
                 }
                 pageChanger.update(selectionStart,  data);
+                selectRange(selectionStart, selectionEnd);
                 repaint();
             }
         });
@@ -259,10 +329,7 @@ public class ByteGrid extends JTable {
                 }
                 int newPos = selectionStart - 1;
                 if (newPos >= 0) {
-                    selectionStart = newPos;
-                    selectionEnd = newPos;
-                    anchorIndex = newPos;
-                    leadIndex = newPos;
+                    setSelection(newPos);
                 }
                 repaint();
             }
@@ -309,7 +376,8 @@ public class ByteGrid extends JTable {
             public void actionPerformed(ActionEvent e) {
                 if (pageChanger == null) return;
                 if (selectionStart == -1) return;
-                pageChanger.paste(selectionStart, false);
+                int pasted = pageChanger.paste(selectionStart, false);
+                selectRange(selectionStart, selectionStart+pasted-1);
                 repaint();
             }
         });
@@ -320,7 +388,8 @@ public class ByteGrid extends JTable {
             public void actionPerformed(ActionEvent e) {
                 if (pageChanger == null) return;
                 if (selectionStart == -1) return;
-                pageChanger.paste(selectionStart, true);
+                int pasted = pageChanger.paste(selectionStart, true);
+                selectRange(selectionStart, selectionStart+pasted-1);
                 repaint();
             }
         });
@@ -334,6 +403,7 @@ public class ByteGrid extends JTable {
                 byte[] data = getSelectedBytes();
                 pageChanger.copy(data);
                 pageChanger.delete(selectionStart, selectionEnd + 1);
+                setSelection(selectionStart);
                 repaint();
             }
         });
@@ -348,6 +418,7 @@ public class ByteGrid extends JTable {
                 pageChanger.copy(data);
                 Arrays.fill(data, (byte) 0);
                 pageChanger.update(selectionStart, data);
+                selectRange(selectionStart, selectionEnd);
                 repaint();
             }
         });
@@ -358,7 +429,8 @@ public class ByteGrid extends JTable {
             public void actionPerformed(ActionEvent e) {
                 if (pageChanger == null) return;
                 if (selectionStart == -1) return;
-                pageChanger.insert(selectionStart, (byte) 0);
+                pageChanger.insert(selectionEnd, (byte) 0);
+
                 repaint();
             }
         });
@@ -374,10 +446,7 @@ public class ByteGrid extends JTable {
                 int nextPos = selectionEnd + 1;
                 int maxPos = pageChanger.getData().size() - 1;
                 if (nextPos <= maxPos) {
-                    selectionStart = nextPos;
-                    selectionEnd = nextPos;
-                    anchorIndex = nextPos;
-                    leadIndex = nextPos;
+                    setSelection(nextPos);
                     repaint();
                 }
             }
@@ -390,10 +459,7 @@ public class ByteGrid extends JTable {
                 if (selectionStart == -1) return;
                 int prevPos = selectionStart - 1;
                 if (prevPos >= 0) {
-                    selectionStart = prevPos;
-                    selectionEnd = prevPos;
-                    anchorIndex = prevPos;
-                    leadIndex = prevPos;
+                    setSelection(prevPos);
                     repaint();
                 }
             }
@@ -408,10 +474,7 @@ public class ByteGrid extends JTable {
                 int nextPos = selectionEnd + columns;
                 int maxPos = pageChanger.getData().size() - 1;
                 if (nextPos <= maxPos) {
-                    selectionStart = nextPos;
-                    selectionEnd = nextPos;
-                    anchorIndex = nextPos;
-                    leadIndex = nextPos;
+                    setSelection(nextPos);
                     repaint();
                 }
             }
@@ -425,10 +488,7 @@ public class ByteGrid extends JTable {
                 int columns = getColumnCount();
                 int prevPos = selectionStart - columns;
                 if (prevPos >= 0) {
-                    selectionStart = prevPos;
-                    selectionEnd = prevPos;
-                    anchorIndex = prevPos;
-                    leadIndex = prevPos;
+                    setSelection(prevPos);
                     repaint();
                 }
             }
@@ -510,10 +570,12 @@ public class ByteGrid extends JTable {
             @Override
             public void actionPerformed(ActionEvent e) {
                 int totalBytes = pageChanger.getData().size();
+                firePropertyChange("selection", selectionStart, 0);
                 selectionStart = 0;
                 selectionEnd = totalBytes - 1;
                 anchorIndex = 0;
                 leadIndex = totalBytes - 1;
+                firePropertyChange("selection", 0, 1);
                 repaint();
             }
         });
