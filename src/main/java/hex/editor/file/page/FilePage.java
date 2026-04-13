@@ -35,7 +35,14 @@ public class FilePage implements PageOperations {
     public void loadPage(Integer pageSize, Long fileSize){
         this.pageSize = pageSize;
         this.fileSize = fileSize;
-        int bufferSize = Math.min(pageSize, Math.toIntExact(fileSize - position));
+
+        long remainingBytes = fileSize - position;
+        int bufferSize;
+        if (remainingBytes > Integer.MAX_VALUE) {
+            bufferSize = Integer.MAX_VALUE;
+        } else {
+            bufferSize = (int) Math.min(pageSize, remainingBytes);
+        }
         if(bufferSize < 0){
             throw new FileException("Error reading page at position " + position, "File size is " + fileSize);
         }

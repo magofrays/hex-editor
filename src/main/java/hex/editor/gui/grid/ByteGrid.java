@@ -3,7 +3,6 @@ package hex.editor.gui.grid;
 import hex.editor.adapter.PageChanger;
 import hex.editor.config.HexEditorConfig;
 import hex.editor.viewer.ByteViewer;
-import hex.editor.viewer.ByteViewerImpl;
 
 import javax.swing.*;
 import javax.swing.table.TableModel;
@@ -24,15 +23,16 @@ public class ByteGrid extends JTable {
     Integer cellHeight = HexEditorConfig.getInstance().getInteger("editor.cell.height");
     ActionMap actionMap = getActionMap();
     InputMap inputMap = getInputMap(JComponent.WHEN_FOCUSED);
-    ByteViewer byteViewer = new ByteViewerImpl();
+    ByteViewer byteViewer;
     private int selectionStart;
     private int selectionEnd;
     private int anchorIndex;
     private int leadIndex;
 
-    public ByteGrid(TableModel model, PageChanger pageChanger){
+    public ByteGrid(TableModel model, PageChanger pageChanger, ByteViewer byteViewer){
         super(model);
         this.pageChanger = pageChanger;
+        this.byteViewer = byteViewer;
         initUI();
         setupCustomSelection();
         setupKeyBindings();
@@ -59,14 +59,14 @@ public class ByteGrid extends JTable {
     private void setupByteViewPopup() {
         JPopupMenu byteViewMenu = new JPopupMenu();
         byteViewMenu.setLayout(new FlowLayout());
-        byteViewMenu.setVisible(true);
-
+        byteViewMenu.setVisible(false);
+        byteViewMenu.setFocusCycleRoot(false);
+        byteViewMenu.setFocusable(false);
         PropertyChangeListener byteView = evt -> {
             if ("selection".equals(evt.getPropertyName())) {
                 updateByteViewPosition(byteViewMenu);
             }
         };
-
         addPropertyChangeListener(byteView);
     }
     private void updateByteViewPosition(JPopupMenu popup) {
@@ -74,10 +74,7 @@ public class ByteGrid extends JTable {
 
         int columnStart = selectionStart % getColumnCount();
         int rowStart = selectionStart / getColumnCount();
-        java.awt.Point tableLocation = getLocationOnScreen();
         java.awt.Rectangle startRect = getCellRect(rowStart, columnStart, true);
-        popup.setLocation(startRect.x + tableLocation.x, startRect.y + tableLocation.y + cellHeight);
-
         int size = selectionEnd - selectionStart + 1;
         byte[] data = getSelectedBytes();
 
@@ -88,7 +85,10 @@ public class ByteGrid extends JTable {
         gbc.anchor = GridBagConstraints.WEST;
 
         int row = 0;
-        popup.setVisible(size != 1);
+        if(size < 2){
+            addPopupRow(popup, gbc, row++, "int8:", String.valueOf(data[0]));
+            addPopupRow(popup, gbc, row++, "uint8:", String.valueOf(byteViewer.getUByte(data[0])));
+        }
         if (size >= 2 && size < 4) {
             addPopupRow(popup, gbc, row++, "Int16:", String.valueOf(byteViewer.getShort(data)));
             addPopupRow(popup, gbc, row++, "UInt16:", String.valueOf(byteViewer.getUShort(data)));
@@ -105,8 +105,8 @@ public class ByteGrid extends JTable {
             addPopupRow(popup, gbc, row++, "UInt64:", byteViewer.getULong(data));
             addPopupRow(popup, gbc, row, "Double:", String.valueOf(byteViewer.getDouble(data)));
         }
-
         popup.pack();
+        popup.show(this, startRect.x, startRect.y + cellHeight);
     }
 
     private void addPopupRow(JPopupMenu popup, GridBagConstraints gbc, int row, String label, String value) {
@@ -161,13 +161,14 @@ public class ByteGrid extends JTable {
         });
     }
 
-    private void selectRange(int start, int end) {
+    public void selectRange(int start, int end) {
         int newSelectionStart = Math.min(start, end);
         int newSelectionEnd = Math.max(start, end);
         selectionStart = newSelectionStart;
         selectionEnd = newSelectionEnd;
         leadIndex = selectionEnd;
         firePropertyChange("selection", 0, 1);
+        repaint();
     }
 
     public byte[] getSelectedBytes() {

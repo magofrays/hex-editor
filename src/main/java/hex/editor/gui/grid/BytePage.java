@@ -3,9 +3,11 @@ package hex.editor.gui.grid;
 import hex.editor.adapter.PageChanger;
 import hex.editor.file.controller.FileController;
 import hex.editor.gui.grid.model.ByteGridModel;
+import hex.editor.viewer.ByteViewer;
 
 import javax.swing.*;
-import java.awt.*;
+import java.awt.Component;
+import java.util.List;
 
 public class BytePage extends JPanel {
     ByteGrid byteGrid;
@@ -17,7 +19,7 @@ public class BytePage extends JPanel {
     Integer tableWidth;
     Integer tableHeight;
 
-    public BytePage(FileController fileController, Long position, Integer tableWidth, Integer tableHeight){
+    public BytePage(ByteViewer byteViewer, FileController fileController, Long position, Integer tableWidth, Integer tableHeight){
         this.tableHeight = tableHeight;
         this.tableWidth = tableWidth;
         this.pageChanger = new PageChanger(fileController, position);
@@ -25,7 +27,7 @@ public class BytePage extends JPanel {
         gridContent = new JPanel();
         gridContent.setLayout(new BoxLayout(gridContent, BoxLayout.X_AXIS));
 
-        this.byteGrid = new ByteGrid(byteGridModel, pageChanger);
+        this.byteGrid = new ByteGrid(byteGridModel, pageChanger, byteViewer);
         int rows = byteGrid.getRowCount();
         int columns = byteGrid.getColumnCount();
         gridContent.add(this.byteGrid);
@@ -37,5 +39,13 @@ public class BytePage extends JPanel {
     }
     public Component getGrid(){
         return gridContent;
+    }
+
+    public List<Byte> getData(){
+        return pageChanger.getData();
+    }
+
+    public void selectRange(int start, int end){
+        byteGrid.selectRange(start, end);
     }
 }

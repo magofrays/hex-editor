@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ByteViewerImpl implements ByteViewer {
+
+
     @Override
     public Integer getInt(byte[] bytes) {
         ByteBuffer wrapper = ByteBuffer.wrap(bytes);
@@ -26,7 +28,12 @@ public class ByteViewerImpl implements ByteViewer {
 
     @Override
     public Integer getUShort(byte[] bytes) {
-        return (int) (getShort(bytes) & 0xFFFF);
+        return getShort(bytes) & 0xFFFF;
+    }
+
+    @Override
+    public Short getUByte(byte data) {
+        return (short)(0xFF & data);
     }
 
     @Override
@@ -57,20 +64,20 @@ public class ByteViewerImpl implements ByteViewer {
 
     private int[] buildPrefixFunction(byte[] mask, boolean[] any) {
         int[] prefix = new int[mask.length];
+        if (mask.length == 0) return prefix;
 
         for (int i = 1; i < mask.length; i++) {
             int j = prefix[i - 1];
 
-            while (j > 0 && !(any[i] || mask[i] == mask[j])) {
+            while (j > 0 && !(any[j] || mask[i] == mask[j])) {
                 j = prefix[j - 1];
             }
 
-            if (any[i] || mask[i] == mask[j]) {
+            if (any[j] || mask[i] == mask[j]) {
                 j++;
             }
             prefix[i] = j;
         }
-
         return prefix;
     }
 
@@ -91,6 +98,7 @@ public class ByteViewerImpl implements ByteViewer {
         for (int i = 0; i != parts.length; i++){
             if(parts[i].equals("?") || parts[i].equals("??")){
                 any[i] = true;
+                continue;
             }
             try {
                 int value = Integer.parseInt(parts[i], 16);
@@ -110,14 +118,19 @@ public class ByteViewerImpl implements ByteViewer {
 
     private List<Integer> getPositions(List<Byte> array, byte[] mask, boolean[] any) {
         List<Integer> positions = new ArrayList<>();
+        if (mask.length == 0) return positions;
+
         int[] prefix = buildPrefixFunction(mask, any);
         int j = 0;
+
         for (int i = 0; i < array.size(); i++) {
-            while (j > 0 && !(any[i] || mask[i] == mask[j])) {
+            byte currentByte = array.get(i);
+
+            while (j > 0 && !(any[j] || currentByte == mask[j])) {
                 j = prefix[j - 1];
             }
 
-            if (any[i] || mask[i] == mask[j]) {
+            if (any[j] || currentByte == mask[j]) {
                 j++;
             }
 

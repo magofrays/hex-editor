@@ -3,6 +3,7 @@ package hex.editor.viewer;
 import java.util.List;
 
 public interface ByteViewer {
+    Short getUByte(byte data);
     Short getShort(byte[] bytes);
     Integer getUShort(byte[] bytes);
     Integer getInt(byte[] bytes);
