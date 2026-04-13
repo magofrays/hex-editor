@@ -44,7 +44,7 @@ public class FileControllerTest {
 
     @Test
     public void getPageTest(){
-        List<Byte> page = fileController.getPage(1023L);
+        List<Byte> page = fileController.getPage(0L).getData();
         assertEquals(fileContentList, page);
     }
 
@@ -56,9 +56,9 @@ public class FileControllerTest {
     @Test
     public void processUpdateAndUndoAndRedoEventTest(){
         ByteBlock byteBlock = new ByteBlock(5, (byte) 1, FileEventType.UPDATE, 0);
-        List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L));
+        List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L).getData());
         fileController.processEvent(byteBlock);
-        List<Byte> newPage = fileController.getPage(1L);
+        List<Byte> newPage = fileController.getPage(1L).getData();
         assertNotEquals(oldPage, newPage);
         fileContentList.set(5, (byte)1);
         assertEquals(fileContentList, newPage);
@@ -73,11 +73,11 @@ public class FileControllerTest {
         ByteBlock byteBlock1 = new ByteBlock(5, (byte) 1, FileEventType.UPDATE, 0);
         ByteBlock byteBlock2 = new ByteBlock(6, (byte) 1, FileEventType.UPDATE, 0);
         ByteBlock byteBlock3 = new ByteBlock(7, (byte) 1, FileEventType.UPDATE, 0);
-        List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L));
+        List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L).getData());
         fileController.processEvent(byteBlock1);
         fileController.processEvent(byteBlock2);
         fileController.processEvent(byteBlock3);
-        List<Byte> newPage = fileController.getPage(1L);
+        List<Byte> newPage = fileController.getPage(1L).getData();
         assertNotEquals(oldPage, newPage);
         fileContentList.set(5, (byte)1);
         fileContentList.set(6, (byte)1);
@@ -92,9 +92,9 @@ public class FileControllerTest {
     @Test
     public void processDeleteAndUndoAndRedoEventTest(){
         ByteBlock byteBlock = new ByteBlock(4, FileEventType.DELETE, 0);
-        List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L));
+        List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L).getData());
         fileController.processEvent(byteBlock);
-        List<Byte> newPage = fileController.getPage(1L);
+        List<Byte> newPage = fileController.getPage(1L).getData();
         assertNotEquals(oldPage, newPage);
         fileContentList.remove(4);
         assertEquals(fileContentList, newPage);
@@ -109,12 +109,12 @@ public class FileControllerTest {
         ByteBlock byteBlock1 = new ByteBlock(2, FileEventType.DELETE, 0);
         ByteBlock byteBlock2 = new ByteBlock(1, FileEventType.DELETE, 0);
         ByteBlock byteBlock4 = new ByteBlock(0, FileEventType.DELETE, 0);
-        List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L));
+        List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L).getData());
         fileController.processEvent(byteBlock1);
         fileController.processEvent(byteBlock2);
         fileController.processEvent(byteBlock2);
         fileController.processEvent(byteBlock4);
-        List<Byte> newPage = fileController.getPage(1L);
+        List<Byte> newPage = fileController.getPage(1L).getData();
         assertNotEquals(oldPage, newPage);
         fileContentList.remove(2);
         fileContentList.remove(1);
@@ -130,9 +130,9 @@ public class FileControllerTest {
     @Test
     public void processInsertAndUndoAndRedoEventTest(){
         ByteBlock byteBlock = new ByteBlock(5, (byte) 4, FileEventType.INSERT, 0);
-        List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L));
+        List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L).getData());
         fileController.processEvent(byteBlock);
-        List<Byte> newPage = fileController.getPage(1L);
+        List<Byte> newPage = fileController.getPage(1L).getData();
         assertNotEquals(oldPage, newPage);
         fileContentList.add(5, (byte)4);
         assertEquals(fileContentList, newPage);
@@ -148,12 +148,12 @@ public class FileControllerTest {
         ByteBlock byteBlock2 = new ByteBlock(6, (byte) 3, FileEventType.INSERT, 0);
         ByteBlock byteBlock3 = new ByteBlock(7, (byte) 3, FileEventType.INSERT, 0);
         ByteBlock byteBlock4 = new ByteBlock(8, (byte) 7, FileEventType.INSERT, 0);
-        List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L));
+        List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L).getData());
         fileController.processEvent(byteBlock1);
         fileController.processEvent(byteBlock2);
         fileController.processEvent(byteBlock3);
         fileController.processEvent(byteBlock4);
-        List<Byte> newPage = fileController.getPage(1L);
+        List<Byte> newPage = fileController.getPage(1L).getData();
         assertNotEquals(oldPage, newPage);
         fileContentList.add(5, (byte) 1);
         fileContentList.add(6, (byte) 3);
@@ -176,7 +176,7 @@ public class FileControllerTest {
         ByteBlock byteBlock5 = new ByteBlock(2, FileEventType.DELETE, 0);
         ByteBlock byteBlock6 = new ByteBlock(1, FileEventType.DELETE, 0);
         ByteBlock byteBlock7 = new ByteBlock(0, FileEventType.DELETE, 0);
-        List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L));
+        List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L).getData());
         fileController.processEvent(byteBlock);
         fileController.processEvent(byteBlock1);
         fileController.processEvent(byteBlock2);
@@ -186,10 +186,10 @@ public class FileControllerTest {
         fileController.processEvent(byteBlock6);
         fileController.processEvent(byteBlock7);
         fileController.processEvent(new SaveEvent());
-        List<Byte> newPage = fileController.getPage(1L);
+        List<Byte> newPage = fileController.getPage(1L).getData();
         assertNotEquals(oldPage, newPage);
         byte[] savedContent = Files.readAllBytes(filePath);
-        List<Byte> memoryState = fileController.getPage(1L);
+        List<Byte> memoryState = fileController.getPage(1L).getData();
         assertEquals(memoryState.size(), savedContent.length);
         for (int i = 0; i < memoryState.size(); i++) {
             assertEquals(memoryState.get(i), savedContent[i]);

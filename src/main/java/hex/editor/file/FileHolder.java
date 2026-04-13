@@ -2,6 +2,7 @@ package hex.editor.file;
 
 import hex.editor.config.HexEditorConfig;
 import hex.editor.exception.FileException;
+import hex.editor.file.dto.PageResult;
 import hex.editor.file.event.ChangeEvent;
 import hex.editor.file.page.FilePage;
 import hex.editor.file.page.PageOperations;
@@ -22,7 +23,7 @@ public class FileHolder implements FileChanger, FileViewer{
     final Path filePath;
     final FileChannel fileChannel;
     Long fileSize;
-    final Integer pageSize;
+    Integer pageSize;
     final Long lastPageIndex;
 
     public FileHolder(Path filePath) throws IOException {
@@ -33,7 +34,7 @@ public class FileHolder implements FileChanger, FileViewer{
         this.fileSize = Files.size(this.filePath);
         this.fileChannel = FileChannel.open(this.filePath, StandardOpenOption.READ, StandardOpenOption.WRITE);
         pages = new TreeMap<>();
-        pageSize = HexEditorConfig.getInstance().getInteger("file.page.size");
+        pageSize = HexEditorConfig.getInstance().getInteger("editor.table.height") * HexEditorConfig.getInstance().getInteger("editor.table.width");
         lastPageIndex = fileSize/pageSize;
     }
 
@@ -42,6 +43,7 @@ public class FileHolder implements FileChanger, FileViewer{
         return pageSize;
     }
 
+    @Override
     public Long getFileSize() {
         return fileSize;
     }
@@ -60,9 +62,9 @@ public class FileHolder implements FileChanger, FileViewer{
         return newPage;
     }
 
-    public List<Byte> viewFile(Long position){
+    public PageResult viewFile(Long position){
         PageOperations page = getPage(position);
-        return page.readPage();
+        return new PageResult(page.readPage(), page.getIndex());
     }
 
     @Override
@@ -81,6 +83,12 @@ public class FileHolder implements FileChanger, FileViewer{
         for(PageOperations page : pages.values()){
             page.loadPage(pageSize,fileSize);
         }
+    }
+
+    @Override
+    public void setPageSize(int width, int height) {
+        pages.clear();
+        pageSize = width*height;
     }
 
 }

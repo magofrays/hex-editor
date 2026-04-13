@@ -4,6 +4,7 @@ import hex.editor.exception.FileException;
 import hex.editor.file.FileChanger;
 import hex.editor.file.FileHolder;
 import hex.editor.file.FileViewer;
+import hex.editor.file.dto.PageResult;
 import hex.editor.file.event.FileEvent;
 import hex.editor.file.event.HistoryEvent;
 import hex.editor.file.event.ChangeEvent;
@@ -56,16 +57,16 @@ public class FileController {
             }
         }
     }
-    public List<Byte> getPage(Long position){
+    public PageResult getPage(Long position){
         return fileViewer.viewFile(position);
     }
 
-    public void subscribeListener(FileListener eventListener){
-        fileListeners.add(eventListener);
+    public void setPageSize(int width, int height){
+        processEvent(new SaveEvent());
+        fileChanger.setPageSize(width, height);
     }
 
-    private void notifyListeners(FileEvent event){
-        fileListeners.forEach( fileListener -> fileListener.notify(event));
+    public Long getFileSize() {
+        return fileViewer.getFileSize();
     }
-
 }

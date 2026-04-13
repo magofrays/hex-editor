@@ -19,17 +19,30 @@ public class FilePage implements PageOperations {
     ByteBuffer actualBuffer;
     List<Byte> currentBuffer;
     Boolean isSaved;
+    Boolean isLoaded;
     Instant updatedAt;
     FileChannel fileChannel;
-
+    Integer pageSize;
+    Long fileSize;
     public FilePage(FileChannel fileChannel, Long position) {
+        currentBuffer = new ArrayList<>();
         isSaved = true;
+        isLoaded = false;
         this.position = position;
         this.fileChannel = fileChannel;
     }
 
     public void loadPage(Integer pageSize, Long fileSize){
-        int bufferSize = Math.min(pageSize, Math.toIntExact(fileSize - position));
+        this.pageSize = pageSize;
+        this.fileSize = fileSize;
+
+        long remainingBytes = fileSize - position;
+        int bufferSize;
+        if (remainingBytes > Integer.MAX_VALUE) {
+            bufferSize = Integer.MAX_VALUE;
+        } else {
+            bufferSize = (int) Math.min(pageSize, remainingBytes);
+        }
         if(bufferSize < 0){
             throw new FileException("Error reading page at position " + position, "File size is " + fileSize);
         }
@@ -43,8 +56,16 @@ public class FilePage implements PageOperations {
             throw new FileException("Error reading page at position " + position, e.getMessage());
         }
         actualBuffer = buf;
-        currentBuffer = bufferToList(buf);
+        currentBuffer.clear();
+        currentBuffer.addAll(bufferToList(buf));
+        isLoaded = true;
         this.updatedAt = Instant.now();
+    }
+
+    @Override
+    public Integer getIndex() {
+        if(!isLoaded) return 0;
+        return Math.toIntExact(position / pageSize);
     }
 
     public ArrayList<Byte> bufferToList(ByteBuffer buffer) {
@@ -91,25 +112,18 @@ public class FilePage implements PageOperations {
             return;
         }
         try {
-            ByteBuffer bufferToSave = ByteBuffer.allocate(currentBuffer.size());
-            for (Byte b : currentBuffer) {
-                bufferToSave.put(b);
+            int bufSize = Math.min(pageSize, Math.toIntExact(fileSize-position));
+            bufSize = Math.max(currentBuffer.size(), bufSize);
+            ByteBuffer bufferToSave = ByteBuffer.allocate(bufSize);
+            for (int i = 0; i < Math.min(currentBuffer.size(), pageSize); i++) {
+                bufferToSave.put(currentBuffer.get(i));
+            }
+            for(int i = currentBuffer.size(); i < bufSize; i++){
+                bufferToSave.put((byte) 0);
             }
             bufferToSave.flip();
             fileChannel.position(position);
             int bytesWritten = fileChannel.write(bufferToSave);
-            if (bytesWritten != currentBuffer.size()) {
-                throw new FileException(
-                        "Error saving page at position " + position,
-                        String.format("Only %d of %d bytes written", bytesWritten, currentBuffer.size())
-                );
-            }
-            actualBuffer = ByteBuffer.allocate(currentBuffer.size());
-            for (Byte b : currentBuffer) {
-                actualBuffer.put(b);
-            }
-            actualBuffer.flip();
-
             isSaved = true;
             updatedAt = Instant.now();
 
