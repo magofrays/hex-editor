@@ -163,7 +163,7 @@ public class FileEditor extends JPanel {
             }
             int widthValue = widthValueNum.intValue();
             int heightValue = heightValueNum.intValue();
-            if(widthValue > 0 && heightValue > 0 && widthValue < 1000 && heightValue < 1000){
+            if(widthValue > 0 && heightValue > 0 && widthValue <= 1000 && heightValue <= 1000){
                 setPageSize(widthValue, heightValue);
             } else {
                 JOptionPane.showMessageDialog(this, "Значения должны быть в диапазоне от 1 до 1000");
