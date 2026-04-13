@@ -6,7 +6,8 @@ import hex.editor.file.event.ByteBlock;
 import hex.editor.file.event.ChangeEvent;
 import hex.editor.file.event.Transaction;
 
-import java.util.*;
+import java.util.Deque;
+import java.util.LinkedList;
 
 public class FileHistoryImpl implements FileHistory {
     private final Deque<ChangeEvent> undoStack;
@@ -24,9 +25,9 @@ public class FileHistoryImpl implements FileHistory {
 
 
     public void collectByteBlock(ByteBlock block) {
-        if(currentTransaction != null){
+        if (currentTransaction != null) {
             boolean add = currentTransaction.addBlock(block);
-            if(!add){
+            if (!add) {
                 undoStack.addLast(currentTransaction);
                 checkSize();
                 currentTransaction = null;
@@ -43,7 +44,7 @@ public class FileHistoryImpl implements FileHistory {
 
     public void collectTransaction(Transaction transaction) {
 
-        if(currentTransaction != null){
+        if (currentTransaction != null) {
             undoStack.addLast(currentTransaction);
             currentTransaction = null;
         }
@@ -52,34 +53,35 @@ public class FileHistoryImpl implements FileHistory {
     }
 
     @Override
-    public void collectEvent(ChangeEvent event){
+    public void collectEvent(ChangeEvent event) {
         clearRedoStack();
-        if(event instanceof ByteBlock){
+        if (event instanceof ByteBlock) {
             collectByteBlock((ByteBlock) event);
         }
-        if (event instanceof Transaction){
+        if (event instanceof Transaction) {
             collectTransaction((Transaction) event);
         }
     }
 
-    public void checkSize(){
-        while (undoStack.size() > historySize){
+    public void checkSize() {
+        while (undoStack.size() > historySize) {
             undoStack.pollFirst();
         }
     }
-    public void clearRedoStack(){
-        if(!redoStack.isEmpty()){
+
+    public void clearRedoStack() {
+        if (!redoStack.isEmpty()) {
             redoStack.clear();
         }
     }
 
     @Override
-    public void undoChanges(){
-        if(undoStack.isEmpty() && currentTransaction == null){
+    public void undoChanges() {
+        if (undoStack.isEmpty() && currentTransaction == null) {
             return;
         }
         ChangeEvent undoTransaction;
-        if(currentTransaction == null){
+        if (currentTransaction == null) {
             undoTransaction = undoStack.pollLast();
         } else {
             undoTransaction = currentTransaction;
@@ -90,8 +92,8 @@ public class FileHistoryImpl implements FileHistory {
     }
 
     @Override
-    public void redoChanges(){
-        if(redoStack.isEmpty()){
+    public void redoChanges() {
+        if (redoStack.isEmpty()) {
             return;
         }
         ChangeEvent redoTransaction = redoStack.pollLast();

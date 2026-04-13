@@ -24,6 +24,7 @@ public class FilePage implements PageOperations {
     FileChannel fileChannel;
     Integer pageSize;
     Long fileSize;
+
     public FilePage(FileChannel fileChannel, Long position) {
         currentBuffer = new ArrayList<>();
         isSaved = true;
@@ -32,7 +33,7 @@ public class FilePage implements PageOperations {
         this.fileChannel = fileChannel;
     }
 
-    public void loadPage(Integer pageSize, Long fileSize){
+    public void loadPage(Integer pageSize, Long fileSize) {
         this.pageSize = pageSize;
         this.fileSize = fileSize;
 
@@ -43,7 +44,7 @@ public class FilePage implements PageOperations {
         } else {
             bufferSize = (int) Math.min(pageSize, remainingBytes);
         }
-        if(bufferSize < 0){
+        if (bufferSize < 0) {
             throw new FileException("Error reading page at position " + position, "File size is " + fileSize);
         }
         ByteBuffer buf = ByteBuffer.allocate(bufferSize);
@@ -64,7 +65,7 @@ public class FilePage implements PageOperations {
 
     @Override
     public Integer getIndex() {
-        if(!isLoaded) return 0;
+        if (!isLoaded) return 0;
         return Math.toIntExact(position / pageSize);
     }
 
@@ -108,17 +109,17 @@ public class FilePage implements PageOperations {
 
     @Override
     public void savePage() {
-        if(isSaved){
+        if (isSaved) {
             return;
         }
         try {
-            int bufSize = Math.min(pageSize, Math.toIntExact(fileSize-position));
+            int bufSize = Math.min(pageSize, Math.toIntExact(fileSize - position));
             bufSize = Math.max(currentBuffer.size(), bufSize);
             ByteBuffer bufferToSave = ByteBuffer.allocate(bufSize);
             for (int i = 0; i < Math.min(currentBuffer.size(), pageSize); i++) {
                 bufferToSave.put(currentBuffer.get(i));
             }
-            for(int i = currentBuffer.size(); i < bufSize; i++){
+            for (int i = currentBuffer.size(); i < bufSize; i++) {
                 bufferToSave.put((byte) 0);
             }
             bufferToSave.flip();
@@ -131,6 +132,7 @@ public class FilePage implements PageOperations {
             throw new FileException("Error saving page at position " + position, e.getMessage());
         }
     }
+
     @Override
     public byte[] doUpdate(Transaction transaction) {
         isSaved = false;
@@ -172,7 +174,7 @@ public class FilePage implements PageOperations {
     }
 
     public ByteBlock doByteBlock(ByteBlock block) {
-        switch (block.getType()){
+        switch (block.getType()) {
             case DELETE:
                 byte deletedData = doDelete(block);
                 return new ByteBlock(block.getIndex(), deletedData, FileEventType.INSERT, block.getPageIndex());
@@ -189,7 +191,7 @@ public class FilePage implements PageOperations {
     }
 
     public Transaction doTransaction(Transaction transaction) {
-        switch (transaction.getType()){
+        switch (transaction.getType()) {
             case DELETE:
                 byte[] deletedData = doDelete(transaction);
                 return new Transaction(
@@ -222,10 +224,10 @@ public class FilePage implements PageOperations {
 
     @Override
     public ChangeEvent doChanges(ChangeEvent event) {
-        if(event instanceof ByteBlock){
+        if (event instanceof ByteBlock) {
             return doByteBlock((ByteBlock) event);
         }
-        if(event instanceof Transaction){
+        if (event instanceof Transaction) {
             return doTransaction((Transaction) event);
         }
         throw new BadFileEventException("Bad Event: ", event);

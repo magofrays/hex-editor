@@ -13,6 +13,7 @@ import java.util.Properties;
 public class HexEditorConfig {
     private static final HexEditorConfig instance = new HexEditorConfig();
     private final Properties properties = new Properties();
+
     public HexEditorConfig() {
         String configHome = System.getenv("XDG_CONFIG_HOME");
         if (configHome == null) {
@@ -27,7 +28,7 @@ public class HexEditorConfig {
             }
         }
         Path configSystem = Paths.get("/etc/hex-editor/config.properties");
-        if(Files.exists(configSystem)) {
+        if (Files.exists(configSystem)) {
             try {
                 properties.load(new FileReader(configSystem.toFile()));
             } catch (IOException e) {
@@ -51,9 +52,11 @@ public class HexEditorConfig {
     public String getString(String key) {
         return properties.getProperty(key);
     }
+
     public Long getLong(String key) {
         return Long.parseLong(properties.getProperty(key));
     }
+
     public Integer getInteger(String key) {
         return Integer.parseInt(properties.getProperty(key));
     }

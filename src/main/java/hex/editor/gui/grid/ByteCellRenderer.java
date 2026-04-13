@@ -32,11 +32,10 @@ public class ByteCellRenderer extends DefaultTableCellRenderer {
             if (isSelected) {
                 setBackground(Color.BLUE);
                 setForeground(Color.WHITE);
-            } else if(unsignedValue == 0){
+            } else if (unsignedValue == 0) {
                 setBackground(Color.DARK_GRAY);
                 setForeground(Color.WHITE);
-            }
-            else {
+            } else {
                 setBackground(Color.WHITE);
                 setForeground(Color.BLACK);
             }

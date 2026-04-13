@@ -35,7 +35,7 @@ public class FileControllerTest {
         Files.write(filePath, fileContent);
         assertTrue(Files.exists(filePath));
         fileContentList = new ArrayList<>(fileContent.length);
-        for(byte b : fileContent){
+        for (byte b : fileContent) {
             fileContentList.add(b);
         }
         fileController = new FileController(filePath);
@@ -43,24 +43,24 @@ public class FileControllerTest {
 
 
     @Test
-    public void getPageTest(){
+    public void getPageTest() {
         List<Byte> page = fileController.getPage(0L).getData();
         assertEquals(fileContentList, page);
     }
 
     @Test
-    public void getPageWithErrorTest(){
+    public void getPageWithErrorTest() {
         assertThrows(FileException.class, () -> fileController.getPage(1024L));
     }
 
     @Test
-    public void processUpdateAndUndoAndRedoEventTest(){
+    public void processUpdateAndUndoAndRedoEventTest() {
         ByteBlock byteBlock = new ByteBlock(5, (byte) 1, FileEventType.UPDATE, 0);
         List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L).getData());
         fileController.processEvent(byteBlock);
         List<Byte> newPage = fileController.getPage(1L).getData();
         assertNotEquals(oldPage, newPage);
-        fileContentList.set(5, (byte)1);
+        fileContentList.set(5, (byte) 1);
         assertEquals(fileContentList, newPage);
         fileController.processEvent(HistoryEvent.UNDO);
         assertEquals(oldPage, newPage);
@@ -69,7 +69,7 @@ public class FileControllerTest {
     }
 
     @Test
-    public void processMultipleUpdateAndUndoAndRedoEventTest(){
+    public void processMultipleUpdateAndUndoAndRedoEventTest() {
         ByteBlock byteBlock1 = new ByteBlock(5, (byte) 1, FileEventType.UPDATE, 0);
         ByteBlock byteBlock2 = new ByteBlock(6, (byte) 1, FileEventType.UPDATE, 0);
         ByteBlock byteBlock3 = new ByteBlock(7, (byte) 1, FileEventType.UPDATE, 0);
@@ -79,9 +79,9 @@ public class FileControllerTest {
         fileController.processEvent(byteBlock3);
         List<Byte> newPage = fileController.getPage(1L).getData();
         assertNotEquals(oldPage, newPage);
-        fileContentList.set(5, (byte)1);
-        fileContentList.set(6, (byte)1);
-        fileContentList.set(7, (byte)1);
+        fileContentList.set(5, (byte) 1);
+        fileContentList.set(6, (byte) 1);
+        fileContentList.set(7, (byte) 1);
         assertEquals(fileContentList, newPage);
         fileController.processEvent(HistoryEvent.UNDO);
         assertEquals(oldPage, newPage);
@@ -90,7 +90,7 @@ public class FileControllerTest {
     }
 
     @Test
-    public void processDeleteAndUndoAndRedoEventTest(){
+    public void processDeleteAndUndoAndRedoEventTest() {
         ByteBlock byteBlock = new ByteBlock(4, FileEventType.DELETE, 0);
         List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L).getData());
         fileController.processEvent(byteBlock);
@@ -105,7 +105,7 @@ public class FileControllerTest {
     }
 
     @Test
-    public void processMultipleDeleteAndUndoAndRedoEventTest(){
+    public void processMultipleDeleteAndUndoAndRedoEventTest() {
         ByteBlock byteBlock1 = new ByteBlock(2, FileEventType.DELETE, 0);
         ByteBlock byteBlock2 = new ByteBlock(1, FileEventType.DELETE, 0);
         ByteBlock byteBlock4 = new ByteBlock(0, FileEventType.DELETE, 0);
@@ -128,13 +128,13 @@ public class FileControllerTest {
     }
 
     @Test
-    public void processInsertAndUndoAndRedoEventTest(){
+    public void processInsertAndUndoAndRedoEventTest() {
         ByteBlock byteBlock = new ByteBlock(5, (byte) 4, FileEventType.INSERT, 0);
         List<Byte> oldPage = new ArrayList<>(fileController.getPage(1L).getData());
         fileController.processEvent(byteBlock);
         List<Byte> newPage = fileController.getPage(1L).getData();
         assertNotEquals(oldPage, newPage);
-        fileContentList.add(5, (byte)4);
+        fileContentList.add(5, (byte) 4);
         assertEquals(fileContentList, newPage);
         fileController.processEvent(HistoryEvent.UNDO);
         assertEquals(oldPage, newPage);
@@ -143,7 +143,7 @@ public class FileControllerTest {
     }
 
     @Test
-    public void processMultipleInsertAndUndoAndRedoEventTest(){
+    public void processMultipleInsertAndUndoAndRedoEventTest() {
         ByteBlock byteBlock1 = new ByteBlock(5, (byte) 1, FileEventType.INSERT, 0);
         ByteBlock byteBlock2 = new ByteBlock(6, (byte) 3, FileEventType.INSERT, 0);
         ByteBlock byteBlock3 = new ByteBlock(7, (byte) 3, FileEventType.INSERT, 0);
@@ -194,7 +194,7 @@ public class FileControllerTest {
         for (int i = 0; i < memoryState.size(); i++) {
             assertEquals(memoryState.get(i), savedContent[i]);
         }
-        for(int i = 0; i < 3; i++){
+        for (int i = 0; i < 3; i++) {
             fileController.processEvent(HistoryEvent.UNDO);
         }
         assertEquals(oldPage, newPage);

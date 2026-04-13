@@ -14,7 +14,8 @@ import java.io.File;
 public class HexEditor extends JFrame {
 
     private final JTabbedPane content;
-    public HexEditor(){
+
+    public HexEditor() {
         super("Hex-редактор");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setSize(1000, 600);
@@ -78,7 +79,7 @@ public class HexEditor extends JFrame {
         return button;
     }
 
-    public void createFileEditor(String path){
+    public void createFileEditor(String path) {
         String fileName = path.substring(path.lastIndexOf(File.separator) + 1);
         addClosableTab(fileName, new FileEditor(path));
     }

@@ -11,7 +11,7 @@ public class ByteGridModel extends AbstractTableModel {
     private final PageChanger pageChanger;
 
 
-    public ByteGridModel(PageChanger pageChanger, Integer tableWidth, Integer tableHeight){
+    public ByteGridModel(PageChanger pageChanger, Integer tableWidth, Integer tableHeight) {
         this.pageChanger = pageChanger;
         flatData = pageChanger.getData();
         this.tableWidth = tableWidth;
@@ -19,7 +19,7 @@ public class ByteGridModel extends AbstractTableModel {
 
     @Override
     public int getRowCount() {
-        return (flatData.size()+ tableWidth -1) / tableWidth;
+        return (flatData.size() + tableWidth - 1) / tableWidth;
     }
 
     @Override
@@ -30,7 +30,7 @@ public class ByteGridModel extends AbstractTableModel {
     @Override
     public Byte getValueAt(int rowIndex, int columnIndex) {
         int index = rowIndex * tableWidth + columnIndex;
-        if(index >= flatData.size()){
+        if (index >= flatData.size()) {
             return null;
         }
         return flatData.get(index);
@@ -46,6 +46,7 @@ public class ByteGridModel extends AbstractTableModel {
     public boolean isCellEditable(int row, int column) {
         return column == 0 || row * tableWidth + column < flatData.size();
     }
+
     @Override
     public Class<?> getColumnClass(int column) {
         return Byte.class;
@@ -53,7 +54,7 @@ public class ByteGridModel extends AbstractTableModel {
 
     @Override
     public void setValueAt(Object value, int rowIndex, int columnIndex) {
-        if(!isCellEditable(rowIndex, columnIndex)){
+        if (!isCellEditable(rowIndex, columnIndex)) {
             return;
         }
         if (value instanceof Byte) {

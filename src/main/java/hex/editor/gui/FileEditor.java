@@ -108,14 +108,15 @@ public class FileEditor extends JPanel {
             SearchResult searchResult;
             int prevIndex;
             List<Byte> prevArray;
+
             @Override
             public void actionPerformed(ActionEvent e) {
                 String value = field.getText();
-                if(prevValue == null || !prevValue.equals(value) || prevIndex != currentIndex){
+                if (prevValue == null || !prevValue.equals(value) || prevIndex != currentIndex) {
                     List<Byte> newArray = pages.get(currentIndex).getData();
-                    try{
+                    try {
                         searchResult = byteViewer.findByPattern(newArray, value);
-                    } catch (ViewerException exception){
+                    } catch (ViewerException exception) {
                         JOptionPane.showMessageDialog(FileEditor.this, exception.getMessage());
                         return;
                     }
@@ -124,14 +125,14 @@ public class FileEditor extends JPanel {
                     prevArray = newArray;
                     index = 0;
                 }
-                if(searchResult.getIndexes().isEmpty()){
+                if (searchResult.getIndexes().isEmpty()) {
                     JOptionPane.showMessageDialog(FileEditor.this, "Ничего не найдено");
                     return;
                 }
                 int current = searchResult.getIndexes().get(index);
                 pages.get(currentIndex).selectRange(current, current + searchResult.getMaskSize() - 1);
                 index++;
-                if(searchResult.getIndexes().size() == index){
+                if (searchResult.getIndexes().size() == index) {
                     index = 0;
                 }
             }
@@ -157,13 +158,13 @@ public class FileEditor extends JPanel {
         sizeButton.addActionListener(e -> {
             Number widthValueNum = (Number) width.getValue();
             Number heightValueNum = (Number) height.getValue();
-            if(widthValueNum == null || heightValueNum == null){
+            if (widthValueNum == null || heightValueNum == null) {
                 JOptionPane.showMessageDialog(this, "Значения должны быть заполнены");
                 return;
             }
             int widthValue = widthValueNum.intValue();
             int heightValue = heightValueNum.intValue();
-            if(widthValue > 0 && heightValue > 0 && widthValue <= 1000 && heightValue <= 1000){
+            if (widthValue > 0 && heightValue > 0 && widthValue <= 1000 && heightValue <= 1000) {
                 setPageSize(widthValue, heightValue);
             } else {
                 JOptionPane.showMessageDialog(this, "Значения должны быть в диапазоне от 1 до 1000");
@@ -197,7 +198,7 @@ public class FileEditor extends JPanel {
                 int prevIndex = currentIndex;
                 currentIndex = getPageIndex(byteIndex) - 1;
                 currentPosition = ((long) currentIndex * pageSize);
-                if(fileController.getFileSize() < currentPosition){
+                if (fileController.getFileSize() < currentPosition) {
                     currentPosition = prevPosition;
                     currentIndex = prevIndex;
                     JOptionPane.showMessageDialog(null,
@@ -223,25 +224,25 @@ public class FileEditor extends JPanel {
         return byteGroup;
     }
 
-    private void createColumnHeader(){
+    private void createColumnHeader() {
         ColumnHeaderList columnHeaderList = new ColumnHeaderList(tableWidth);
         columnHeaderList.setAlignmentX(Component.LEFT_ALIGNMENT);
         columnHeader.add(columnHeaderList);
     }
 
-    private int getPageIndex(long index){
+    private int getPageIndex(long index) {
         return Math.toIntExact(index / pageSize);
     }
 
-    public void setNextPage(){
-        if(fileController.getFileSize() < currentPosition + pageSize){
+    public void setNextPage() {
+        if (fileController.getFileSize() < currentPosition + pageSize) {
             JOptionPane.showMessageDialog(null,
                     "Значение превышает размер файла: " + fileController.getFileSize());
             return;
         }
         currentPosition += pageSize;
         currentIndex++;
-        if(!pages.containsKey(currentIndex)) {
+        if (!pages.containsKey(currentIndex)) {
             try {
                 BytePage page = new BytePage(byteViewer, fileController, currentPosition, tableWidth, tableHeight);
                 pages.put(currentIndex, page);
@@ -255,11 +256,11 @@ public class FileEditor extends JPanel {
         content.repaint();
     }
 
-    public void setPrevPage(){
-        if(currentPosition <= 0 && currentIndex <= 0) return;
+    public void setPrevPage() {
+        if (currentPosition <= 0 && currentIndex <= 0) return;
         currentPosition -= pageSize;
         currentIndex--;
-        if(!pages.containsKey(currentIndex)) {
+        if (!pages.containsKey(currentIndex)) {
             try {
                 BytePage page = new BytePage(byteViewer, fileController, currentPosition, tableWidth, tableHeight);
                 pages.put(currentIndex, page);
@@ -276,10 +277,10 @@ public class FileEditor extends JPanel {
 
     }
 
-    public void setPageSize(int width, int height){
+    public void setPageSize(int width, int height) {
         tableWidth = width;
         tableHeight = height;
-        pageSize = height*width;
+        pageSize = height * width;
         fileController.setPageSize(width, height);
         pages.clear();
         columnHeader.removeAll();

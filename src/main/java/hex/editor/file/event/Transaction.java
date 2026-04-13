@@ -1,7 +1,6 @@
 package hex.editor.file.event;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.LinkedList;
 
@@ -32,21 +31,21 @@ public class Transaction extends ChangeEvent {
     }
 
     public Integer getStart() {
-        if(!isConstructed){
+        if (!isConstructed) {
             construct();
         }
         return start;
     }
 
     public Integer getEnd() {
-        if(!isConstructed){
+        if (!isConstructed) {
             construct();
         }
         return end;
     }
 
     public ArrayList<Byte> getData() {
-        if(!isConstructed){
+        if (!isConstructed) {
             construct();
         }
         return data;
@@ -54,15 +53,15 @@ public class Transaction extends ChangeEvent {
 
     private void construct() {
         int blockSize = blocks.size();
-        if(type.equals(FileEventType.INSERT) || type.equals(FileEventType.UPDATE)){
+        if (type.equals(FileEventType.INSERT) || type.equals(FileEventType.UPDATE)) {
             data = new ArrayList<>(blockSize);
         }
         start = Integer.MAX_VALUE;
-        for(ByteBlock block : blocks){
-            if(type.equals(FileEventType.INSERT) || type.equals(FileEventType.UPDATE)){
+        for (ByteBlock block : blocks) {
+            if (type.equals(FileEventType.INSERT) || type.equals(FileEventType.UPDATE)) {
                 data.add(block.data);
             }
-            if(start > block.index){
+            if (start > block.index) {
                 start = block.index;
             }
         }
@@ -79,15 +78,15 @@ public class Transaction extends ChangeEvent {
     }
 
     public boolean addBlock(ByteBlock newBlock) {
-        if(blocks.isEmpty()){
+        if (blocks.isEmpty()) {
             type = newBlock.type;
             blocks.push(newBlock);
             return true;
         }
-        if(type != newBlock.type){
+        if (type != newBlock.type) {
             return false;
         }
-        switch (type){
+        switch (type) {
             case DELETE:
                 return addBlockDelete(newBlock);
             case INSERT:
@@ -99,11 +98,11 @@ public class Transaction extends ChangeEvent {
     }
 
 
-    private boolean addBlockDelete(ByteBlock newBlock){
-        if(blocks.peekLast() == null){
+    private boolean addBlockDelete(ByteBlock newBlock) {
+        if (blocks.peekLast() == null) {
             return false;
         }
-        if(blocks.peekLast().index + 1 == newBlock.index){
+        if (blocks.peekLast().index + 1 == newBlock.index) {
             blocks.addLast(newBlock);
             return true;
         }
@@ -111,28 +110,28 @@ public class Transaction extends ChangeEvent {
     }
 
     private boolean addBlockInsert(ByteBlock newBlock) {
-        if(blocks.peekFirst() == null){
+        if (blocks.peekFirst() == null) {
             return false;
         }
-        if(blocks.peekFirst().index - 1 == newBlock.index){
+        if (blocks.peekFirst().index - 1 == newBlock.index) {
             blocks.addFirst(newBlock); // it is reversed
             return true;
         }
-        if(blocks.peekFirst().index.equals(newBlock.index)){
+        if (blocks.peekFirst().index.equals(newBlock.index)) {
             blocks.addLast(newBlock);
             return true;
         }
         return false;
     }
 
-    private boolean addBlockUpdate(ByteBlock newBlock){
-        if(blocks.peekLast() == null){
+    private boolean addBlockUpdate(ByteBlock newBlock) {
+        if (blocks.peekLast() == null) {
             return false;
         }
-        if(blocks.peekLast().index + 1 == newBlock.index){
+        if (blocks.peekLast().index + 1 == newBlock.index) {
             blocks.addLast(newBlock);
             return true;
-        } else if (blocks.peekFirst().index - 1 == newBlock.index){
+        } else if (blocks.peekFirst().index - 1 == newBlock.index) {
             blocks.addFirst(newBlock);
             return true;
         }

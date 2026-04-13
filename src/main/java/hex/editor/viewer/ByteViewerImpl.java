@@ -33,7 +33,7 @@ public class ByteViewerImpl implements ByteViewer {
 
     @Override
     public Short getUByte(byte data) {
-        return (short)(0xFF & data);
+        return (short) (0xFF & data);
     }
 
     @Override
@@ -82,21 +82,20 @@ public class ByteViewerImpl implements ByteViewer {
     }
 
 
-
     @Override
     public SearchResult findByPattern(List<Byte> array, String pattern) {
-        if(pattern == null){
+        if (pattern == null) {
             throw new ViewerException("Пустая маска");
         }
         pattern = pattern.trim();
-        if(pattern.isEmpty()) {
+        if (pattern.isEmpty()) {
             throw new ViewerException("Пустая маска");
         }
         String[] parts = pattern.split("\\s+");
         byte[] mask = new byte[parts.length];
         boolean[] any = new boolean[parts.length];
-        for (int i = 0; i != parts.length; i++){
-            if(parts[i].equals("?") || parts[i].equals("??")){
+        for (int i = 0; i != parts.length; i++) {
+            if (parts[i].equals("?") || parts[i].equals("??")) {
                 any[i] = true;
                 continue;
             }

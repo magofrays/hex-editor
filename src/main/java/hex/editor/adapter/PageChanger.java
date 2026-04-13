@@ -13,45 +13,45 @@ public class PageChanger {
     FileController fileController;
     PageResult pageResult;
 
-    public PageChanger(FileController fileController, Long position){
+    public PageChanger(FileController fileController, Long position) {
         this.fileController = fileController;
         pageResult = fileController.getPage(position);
     }
 
-    public List<Byte> getData(){
+    public List<Byte> getData() {
         return pageResult.getData();
     }
 
-    public void insert(Integer index, byte data){
+    public void insert(Integer index, byte data) {
         fileController.processEvent(new ByteBlock(index, data, FileEventType.INSERT, pageResult.getPageIndex()));
     }
 
-    public void insert(Integer start, byte[] data){
-        fileController.processEvent(new Transaction(data, start, start+data.length, FileEventType.INSERT, pageResult.getPageIndex()));
+    public void insert(Integer start, byte[] data) {
+        fileController.processEvent(new Transaction(data, start, start + data.length, FileEventType.INSERT, pageResult.getPageIndex()));
     }
 
-    public void update(Integer index, byte data){
+    public void update(Integer index, byte data) {
         fileController.processEvent(new ByteBlock(index, data, FileEventType.UPDATE, pageResult.getPageIndex()));
     }
 
-    public void update(Integer start, byte[] data){
-        fileController.processEvent(new Transaction(data, start, start+data.length, FileEventType.UPDATE, pageResult.getPageIndex()));
+    public void update(Integer start, byte[] data) {
+        fileController.processEvent(new Transaction(data, start, start + data.length, FileEventType.UPDATE, pageResult.getPageIndex()));
     }
 
-    public void delete(Integer index){
+    public void delete(Integer index) {
         fileController.processEvent(new ByteBlock(index, FileEventType.DELETE, pageResult.getPageIndex()));
     }
 
-    public void delete(Integer start, Integer end){
+    public void delete(Integer start, Integer end) {
         fileController.processEvent(new Transaction(new byte[]{}, start, end, FileEventType.DELETE, pageResult.getPageIndex()));
     }
 
 
-    public void save(){
+    public void save() {
         fileController.processEvent(new SaveEvent());
     }
 
-    public void undo(){
+    public void undo() {
         fileController.processEvent(HistoryEvent.UNDO);
     }
 
@@ -59,9 +59,9 @@ public class PageChanger {
         fileController.processEvent(HistoryEvent.REDO);
     }
 
-    public void copy(byte[] data){
+    public void copy(byte[] data) {
         StringBuilder sb = new StringBuilder();
-        for(byte b : data){
+        for (byte b : data) {
             sb.append(String.format("%02X", b)).append(" ");
         }
         StringSelection selection = new StringSelection(sb.toString());
@@ -69,7 +69,7 @@ public class PageChanger {
         clipboard.setContents(selection, null);
     }
 
-    public int paste(Integer start, boolean insert){
+    public int paste(Integer start, boolean insert) {
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         Transferable t = clipboard.getContents(null);
 
@@ -81,7 +81,7 @@ public class PageChanger {
                 for (int i = 0; i < data.length; i++) {
                     bytes[i] = (byte) Integer.parseInt(data[i].trim(), 16);
                 }
-                if(insert) insert(start, bytes);
+                if (insert) insert(start, bytes);
                 else update(start, bytes);
                 return bytes.length;
             } catch (UnsupportedFlavorException | IOException ex) {
